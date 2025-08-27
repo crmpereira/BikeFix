@@ -136,6 +136,9 @@ const Navbar = () => {
             open={Boolean(anchorEl)}
             onClose={handleMenuClose}
           >
+            <MenuItem disabled sx={{ opacity: 1, fontWeight: 600 }}>
+              {user?.name || 'Usuário'}
+            </MenuItem>
             <MenuItem onClick={() => { navigate('/profile'); handleMenuClose(); }}>
               <Person sx={{ mr: 1 }} /> Perfil
             </MenuItem>
@@ -187,6 +190,10 @@ const Navbar = () => {
           
           {isAuthenticated ? (
             <>
+              <ListItem sx={{ bgcolor: 'grey.100', fontWeight: 600 }}>
+                <ListItemIcon><AccountCircle /></ListItemIcon>
+                <ListItemText primary={user?.name || 'Usuário'} />
+              </ListItem>
               <ListItem button onClick={() => { navigate('/profile'); handleMobileMenuToggle(); }}>
                 <ListItemIcon><Person /></ListItemIcon>
                 <ListItemText primary="Perfil" />

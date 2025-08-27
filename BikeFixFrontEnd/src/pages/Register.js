@@ -73,12 +73,39 @@ const Register = () => {
     }
   }, [isAuthenticated, navigate]);
 
+  // Função para aplicar máscara de telefone brasileiro
+  const applyPhoneMask = (value) => {
+    // Remove todos os caracteres não numéricos
+    const numbers = value.replace(/\D/g, '');
+    
+    // Aplica a máscara baseada no número de dígitos
+    if (numbers.length <= 2) {
+      return `(${numbers}`;
+    } else if (numbers.length <= 7) {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+    } else if (numbers.length <= 11) {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`;
+    } else {
+      // Limita a 11 dígitos
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    let processedValue = value;
+    
+    // Aplicar máscara de telefone
+    if (name === 'phone') {
+      processedValue = applyPhoneMask(value);
+    }
+    
     setFormData(prev => ({
       ...prev,
-      [name]: value,
+      [name]: processedValue,
     }));
+    
     // Limpar erro do campo quando usuário começar a digitar
     if (errors[name]) {
       setErrors(prev => ({
@@ -312,6 +339,7 @@ const Register = () => {
               id="phone"
               label="Telefone"
               name="phone"
+              placeholder="(47) 99999-9999"
               autoComplete="tel"
               value={formData.phone}
               onChange={handleChange}

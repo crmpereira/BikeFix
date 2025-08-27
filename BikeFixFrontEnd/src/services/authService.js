@@ -32,10 +32,12 @@ api.interceptors.response.use(
     return response.data;
   },
   (error) => {
-    // Se token expirou, remover e redirecionar para login
+    // Se token expirou, apenas remover o token
+    // O AuthContext vai detectar e gerenciar o redirecionamento
     if (error.response?.status === 401) {
       Cookies.remove('token');
-      window.location.href = '/login';
+      // Não fazer redirecionamento automático aqui
+      // window.location.href = '/login';
     }
     return Promise.reject(error);
   }

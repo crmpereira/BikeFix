@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Container,
@@ -19,6 +19,8 @@ import {
   Select,
   MenuItem,
   Slider,
+  IconButton,
+  Drawer,
   Accordion,
   AccordionSummary,
   AccordionDetails,
@@ -27,13 +29,14 @@ import {
   ListItemText,
   ListItemIcon,
   Divider,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import {
   Search,
   LocationOn,
   Phone,
   Schedule,
-  Star,
   FilterList,
   ExpandMore,
   Build,
@@ -42,83 +45,157 @@ import {
   AccessTime,
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
+import workshopService from '../services/workshopService';
+import { toast } from 'react-toastify';
 
 const WorkshopSearch = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [location, setLocation] = useState('');
-  const [serviceType, setServiceType] = useState('');
-  const [priceRange, setPriceRange] = useState([0, 500]);
+  const [filters, setFilters] = useState({
+    search: '',
+    city: '',
+    state: '',
+    minRating: 0,
+    maxDistance: 50,
+    services: [],
+    minPrice: 0,
+    maxPrice: 200
+  });
   const [sortBy, setSortBy] = useState('rating');
   const [workshops, setWorkshops] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [initialLoad, setInitialLoad] = useState(true);
+  const [availableServices] = useState([
+    'Manutenção Preventiva',
+    'Reparo de Freios',
+    'Troca de Pneus',
+    'Ajuste de Câmbio',
+    'Limpeza Completa',
+    'Upgrade de Componentes',
+    'Revisão Geral'
+  ]);
 
-  // Dados mockados para demonstração
-  const mockWorkshops = [
-    {
-      id: 1,
-      name: 'Bike Center',
-      address: 'Rua das Flores, 123 - Centro',
-      city: 'São Paulo',
-      phone: '(11) 1234-5678',
-      rating: 4.8,
-      reviewCount: 156,
-      services: ['Manutenção Preventiva', 'Troca de Pneus', 'Ajuste de Freios'],
-      priceRange: 'R$ 50 - R$ 200',
-      openHours: '08:00 - 18:00',
-      verified: true,
-      distance: '2.3 km',
-      image: null,
-    },
-    {
-      id: 2,
-      name: 'Speed Bikes',
-      address: 'Av. Paulista, 456 - Bela Vista',
-      city: 'São Paulo',
-      phone: '(11) 9876-5432',
-      rating: 4.5,
-      reviewCount: 89,
-      services: ['Manutenção Completa', 'Upgrade de Componentes', 'Limpeza'],
-      priceRange: 'R$ 80 - R$ 350',
-      openHours: '09:00 - 19:00',
-      verified: true,
-      distance: '4.1 km',
-      image: null,
-    },
-    {
-      id: 3,
-      name: 'Ciclo Repair',
-      address: 'Rua Augusta, 789 - Consolação',
-      city: 'São Paulo',
-      phone: '(11) 5555-1234',
-      rating: 4.2,
-      reviewCount: 67,
-      services: ['Reparo de Pneus', 'Ajuste de Câmbio', 'Soldas'],
-      priceRange: 'R$ 30 - R$ 150',
-      openHours: '08:30 - 17:30',
-      verified: false,
-      distance: '6.7 km',
-      image: null,
-    },
-  ];
-
+  // Carregar oficinas ao montar o componente
   useEffect(() => {
-    setWorkshops(mockWorkshops);
+    loadWorkshops();
   }, []);
 
-  const handleSearch = () => {
-    setLoading(true);
-    // Simular busca
-    setTimeout(() => {
+  const loadWorkshops = useCallback(async (searchFilters = {}) => {
+    try {
+      console.log('🚀 Iniciando loadWorkshops com filtros:', searchFilters);
+      setLoading(true);
+      setError(null);
+      
+      // Combinar filtros atuais com filtros de busca
+      const apiFilters = {
+        ...filters,
+        ...searchFilters
+      };
+      
+      // Remover filtros vazios e valores padrão
+      Object.keys(apiFilters).forEach(key => {
+        if (apiFilters[key] === '' || 
+            (Array.isArray(apiFilters[key]) && apiFilters[key].length === 0)) {
+          delete apiFilters[key];
+        }
+        // Remover valores padrão para campos específicos
+        if (key === 'minPrice' && apiFilters[key] === 0) {
+          delete apiFilters[key];
+        }
+        if (key === 'maxPrice' && apiFilters[key] === 200) {
+          delete apiFilters[key];
+        }
+        if (key === 'maxDistance' && apiFilters[key] === 50) {
+          delete apiFilters[key];
+        }
+      });
+      
+      let response;
+      
+      // Sempre usar getWorkshops para manter consistência
+      console.log('🎯 Buscando oficinas com filtros:', apiFilters);
+      response = await workshopService.getWorkshops(apiFilters);
+      
+      console.log('📡 Resposta da API:', response);
+      
+      if (response.success && response.data) {
+        const formattedWorkshops = response.data.map(workshop => 
+          workshopService.formatWorkshopForFrontend(workshop)
+        );
+        console.log('✅ Oficinas formatadas:', formattedWorkshops.length, 'oficinas');
+        setWorkshops(formattedWorkshops);
+      } else {
+        console.log('❌ Erro na resposta:', response.message);
+        throw new Error(response.message || 'Erro ao carregar oficinas');
+      }
+    } catch (error) {
+      console.error('Erro ao carregar oficinas:', error);
+      setError(error.message || 'Erro ao carregar oficinas');
+      toast.error('Erro ao carregar oficinas');
+    } finally {
       setLoading(false);
-    }, 1000);
+      if (initialLoad) {
+        setInitialLoad(false);
+      }
+    }
+  }, [filters, initialLoad]);
+
+  const handleSearch = () => {
+    console.log('🔍 Botão BUSCAR pressionado');
+    console.log('📋 Filtros atuais:', filters);
+    
+    const searchFilters = {
+      search: filters.search,
+      city: filters.city,
+      state: filters.state,
+      minRating: filters.minRating,
+      minPrice: filters.minPrice,
+      maxPrice: filters.maxPrice,
+      services: filters.services,
+      radius: filters.maxDistance
+    };
+    
+    console.log('🎯 Filtros de busca:', searchFilters);
+    loadWorkshops(searchFilters);
   };
 
-  const filteredWorkshops = workshops.filter(workshop => {
-    const matchesSearch = workshop.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         workshop.services.some(service => service.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesLocation = location === '' || workshop.city.toLowerCase().includes(location.toLowerCase());
-    return matchesSearch && matchesLocation;
-  });
+  const filteredWorkshops = workshops
+    .filter(workshop => {
+      // Filtro de avaliação mínima
+      if (filters.minRating > 0 && workshop.rating < filters.minRating) return false;
+      
+      // Filtro de distância (se disponível)
+      if (workshop.distance && filters.maxDistance) {
+        const distanceValue = parseFloat(workshop.distance.replace(' km', ''));
+        if (distanceValue > filters.maxDistance) return false;
+      }
+      
+      return true;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'rating':
+          return b.rating - a.rating;
+        case 'distance':
+          if (a.distance && b.distance) {
+            const distA = parseFloat(a.distance.replace(' km', ''));
+            const distB = parseFloat(b.distance.replace(' km', ''));
+            return distA - distB;
+          }
+          return 0;
+        case 'price':
+          // Ordenar por menor preço (extrair valor mínimo da faixa de preços)
+          const getPriceValue = (priceRange) => {
+            if (!priceRange || priceRange === 'Consultar') return 999999;
+            const match = priceRange.match(/R\$ (\d+)/);
+            return match ? parseInt(match[1]) : 999999;
+          };
+          return getPriceValue(a.priceRange) - getPriceValue(b.priceRange);
+        case 'reviews':
+          return (b.ratingCount || 0) - (a.ratingCount || 0);
+        default:
+          return b.rating - a.rating;
+      }
+    });
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -137,8 +214,8 @@ const WorkshopSearch = () => {
             <TextField
               fullWidth
               label="Buscar oficinas ou serviços"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={filters.search}
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
               size="medium"
               InputProps={{
                 startAdornment: (
@@ -154,8 +231,8 @@ const WorkshopSearch = () => {
             <TextField
               fullWidth
               label="Localização"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              value={filters.city}
+              onChange={(e) => setFilters({ ...filters, city: e.target.value })}
               size="medium"
               InputProps={{
                 startAdornment: (
@@ -171,30 +248,55 @@ const WorkshopSearch = () => {
             <FormControl fullWidth>
               <InputLabel>Tipo de Serviço</InputLabel>
               <Select
-                value={serviceType}
+                value={filters.services.length > 0 ? filters.services[0] : ''}
                 label="Tipo de Serviço"
-                onChange={(e) => setServiceType(e.target.value)}
+                onChange={(e) => setFilters({ ...filters, services: e.target.value ? [e.target.value] : [] })}
               >
                 <MenuItem value="">Todos</MenuItem>
-                <MenuItem value="manutencao">Manutenção</MenuItem>
-                <MenuItem value="reparo">Reparo</MenuItem>
-                <MenuItem value="upgrade">Upgrade</MenuItem>
-                <MenuItem value="limpeza">Limpeza</MenuItem>
+                {availableServices.map((service) => (
+                  <MenuItem key={service} value={service}>
+                    {service}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Grid>
           
           <Grid item xs={12} md={2}>
-            <Button
-              fullWidth
-              variant="contained"
-              size="large"
-              onClick={handleSearch}
-              disabled={loading}
-              sx={{ height: '56px' }}
-            >
-              {loading ? 'Buscando...' : 'Buscar'}
-            </Button>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, height: '100%' }}>
+              <Button
+                fullWidth
+                variant="contained"
+                size="medium"
+                onClick={handleSearch}
+                disabled={loading}
+                sx={{ flex: 1 }}
+              >
+                {loading ? 'Buscando...' : 'Buscar'}
+              </Button>
+              <Button
+                fullWidth
+                variant="outlined"
+                size="small"
+                onClick={() => {
+                  const defaultFilters = {
+                    search: '',
+                    city: '',
+                    state: '',
+                    minRating: 0,
+                    maxDistance: 50,
+                    services: [],
+                    minPrice: 0,
+                    maxPrice: 200
+                  };
+                  setFilters(defaultFilters);
+                  loadWorkshops({});
+                }}
+                disabled={loading}
+              >
+                Limpar
+              </Button>
+            </Box>
           </Grid>
         </Grid>
 
@@ -208,17 +310,64 @@ const WorkshopSearch = () => {
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <Typography gutterBottom>Faixa de Preço</Typography>
-                <Slider
-                  value={priceRange}
-                  onChange={(e, newValue) => setPriceRange(newValue)}
-                  valueLabelDisplay="auto"
-                  min={0}
-                  max={500}
-                  valueLabelFormat={(value) => `R$ ${value}`}
-                />
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2">R$ 0</Typography>
-                  <Typography variant="body2">R$ 500+</Typography>
+                <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                  <TextField
+                    label="Preço Mínimo"
+                    type="number"
+                    value={filters.minPrice}
+                    onChange={(e) => setFilters({ ...filters, minPrice: parseFloat(e.target.value) || 0 })}
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start">R$</InputAdornment>,
+                    }}
+                    size="small"
+                    fullWidth
+                  />
+                  <TextField
+                    label="Preço Máximo"
+                    type="number"
+                    value={filters.maxPrice}
+                    onChange={(e) => setFilters({ ...filters, maxPrice: parseFloat(e.target.value) || 500 })}
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start">R$</InputAdornment>,
+                    }}
+                    size="small"
+                    fullWidth
+                  />
+                </Box>
+              </Grid>
+              
+              <Grid item xs={12} md={6}>
+                <Typography gutterBottom>Distância Máxima</Typography>
+                <Box sx={{ px: 2, mb: 2 }}>
+                  <Slider
+                    value={filters.maxDistance}
+                    onChange={(e, newValue) => setFilters({ ...filters, maxDistance: newValue })}
+                    min={1}
+                    max={100}
+                    step={5}
+                    marks={[
+                      { value: 5, label: '5km' },
+                      { value: 25, label: '25km' },
+                      { value: 50, label: '50km' },
+                      { value: 100, label: '100km' }
+                    ]}
+                    valueLabelDisplay="auto"
+                    valueLabelFormat={(value) => `${value}km`}
+                  />
+                </Box>
+              </Grid>
+              
+              <Grid item xs={12} md={6}>
+                <Typography gutterBottom>Avaliação Mínima</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Rating
+                    value={filters.minRating}
+                    onChange={(e, newValue) => setFilters({ ...filters, minRating: newValue || 0 })}
+                    precision={0.5}
+                  />
+                  <Typography variant="body2" color="text.secondary">
+                    {filters.minRating > 0 ? `${filters.minRating} estrelas ou mais` : 'Qualquer avaliação'}
+                  </Typography>
                 </Box>
               </Grid>
               
@@ -242,12 +391,29 @@ const WorkshopSearch = () => {
         </Accordion>
       </Paper>
 
-      {/* Resultados */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          {filteredWorkshops.length} oficinas encontradas
-        </Typography>
-      </Box>
+      {/* Loading e Error States */}
+      {initialLoad && loading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <CircularProgress />
+        </Box>
+      )}
+      
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+          <Button onClick={loadWorkshops} sx={{ ml: 2 }}>
+            Tentar Novamente
+          </Button>
+        </Alert>
+      )}
+      
+      {!initialLoad && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            {loading ? 'Buscando...' : `${filteredWorkshops.length} oficinas encontradas`}
+          </Typography>
+        </Box>
+      )}
 
       <Grid container spacing={3}>
         {filteredWorkshops.map((workshop) => (
@@ -299,7 +465,7 @@ const WorkshopSearch = () => {
                       <Typography variant="body2" color="text.secondary" sx={{
                         fontSize: { xs: '0.75rem', sm: '0.875rem' }
                       }}>
-                        {workshop.rating} ({workshop.reviewCount} avaliações)
+                        {workshop.rating} ({workshop.ratingCount || workshop.reviewCount} avaliações)
                       </Typography>
                     </Box>
                   </Box>
@@ -330,17 +496,17 @@ const WorkshopSearch = () => {
                   Serviços:
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
-                  {workshop.services.slice(0, 3).map((service, index) => (
+                  {workshop.serviceNames.slice(0, 3).map((serviceName, index) => (
                     <Chip
                       key={index}
-                      label={service}
+                      label={serviceName}
                       size="small"
                       variant="outlined"
                     />
                   ))}
-                  {workshop.services.length > 3 && (
+                  {workshop.serviceNames.length > 3 && (
                     <Chip
-                      label={`+${workshop.services.length - 3}`}
+                      label={`+${workshop.serviceNames.length - 3}`}
                       size="small"
                       variant="outlined"
                     />

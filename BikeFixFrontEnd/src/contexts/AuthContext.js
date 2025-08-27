@@ -26,11 +26,17 @@ export const AuthProvider = ({ children }) => {
           const userData = await authService.getProfile();
           setUser(userData);
           setIsAuthenticated(true);
+        } else {
+          // Se não há token, garantir que o estado está limpo
+          setUser(null);
+          setIsAuthenticated(false);
         }
       } catch (error) {
         console.error('Erro ao verificar autenticação:', error);
-        // Remove token inválido
+        // Remove token inválido e limpa estado
         Cookies.remove('token');
+        setUser(null);
+        setIsAuthenticated(false);
       } finally {
         setLoading(false);
       }
@@ -39,10 +45,28 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, []);
 
+  // Verificar periodicamente se o token ainda existe
+  useEffect(() => {
+    const checkTokenPeriodically = () => {
+      const token = Cookies.get('token');
+      if (!token && isAuthenticated) {
+        // Token foi removido (provavelmente pelo interceptor), limpar estado
+        setUser(null);
+        setIsAuthenticated(false);
+      }
+    };
+
+    // Verificar a cada 30 segundos se o token ainda existe
+    const interval = setInterval(checkTokenPeriodically, 30000);
+    
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
   const login = async (email, password) => {
     try {
       const response = await authService.login(email, password);
-      const { token, user: userData } = response;
+      const { data } = response;
+      const { token, user: userData } = data;
       
       // Salvar token no cookie
       Cookies.set('token', token, { expires: 7 }); // 7 dias

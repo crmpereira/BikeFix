@@ -24,6 +24,11 @@ import {
   DialogActions,
   TextField,
   Alert,
+  CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   Build,
@@ -43,6 +48,7 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-toastify';
+import workshopService from '../services/workshopService';
 
 const WorkshopDetail = () => {
   const { id } = useParams();
@@ -50,6 +56,7 @@ const WorkshopDetail = () => {
   const { user } = useAuth();
   const [workshop, setWorkshop] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [tabValue, setTabValue] = useState(0);
   const [appointmentDialogOpen, setAppointmentDialogOpen] = useState(false);
   const [appointmentData, setAppointmentData] = useState({
@@ -59,96 +66,31 @@ const WorkshopDetail = () => {
     description: '',
   });
 
-  // Dados mockados para demonstração
-  const mockWorkshop = {
-    id: 1,
-    name: 'Bike Center',
-    description: 'Oficina especializada em manutenção e reparo de bikes com mais de 15 anos de experiência. Oferecemos serviços completos para todos os tipos de bikes.',
-    address: 'Rua das Flores, 123 - Centro',
-    city: 'São Paulo',
-    state: 'SP',
-    zipCode: '01234-567',
-    phone: '(11) 1234-5678',
-    email: 'contato@bikecenter.com.br',
-    whatsapp: '(11) 91234-5678',
-    rating: 4.8,
-    reviewCount: 156,
-    verified: true,
-    openHours: {
-      monday: '08:00 - 18:00',
-      tuesday: '08:00 - 18:00',
-      wednesday: '08:00 - 18:00',
-      thursday: '08:00 - 18:00',
-      friday: '08:00 - 18:00',
-      saturday: '08:00 - 14:00',
-      sunday: 'Fechado',
-    },
-    services: [
-      {
-        id: 1,
-        name: 'Manutenção Preventiva',
-        description: 'Revisão completa da bike incluindo ajustes e lubrificação',
-        price: 'R$ 80,00',
-        duration: '2 horas',
-      },
-      {
-        id: 2,
-        name: 'Troca de Pneus',
-        description: 'Substituição de pneus e câmaras de ar',
-        price: 'R$ 45,00',
-        duration: '30 min',
-      },
-      {
-        id: 3,
-        name: 'Ajuste de Freios',
-        description: 'Regulagem e manutenção do sistema de freios',
-        price: 'R$ 35,00',
-        duration: '45 min',
-      },
-      {
-        id: 4,
-        name: 'Ajuste de Câmbio',
-        description: 'Regulagem do sistema de transmissão',
-        price: 'R$ 40,00',
-        duration: '1 hora',
-      },
-    ],
-    reviews: [
-      {
-        id: 1,
-        user: 'João Silva',
-        rating: 5,
-        comment: 'Excelente atendimento! Minha bike ficou como nova.',
-        date: '2024-01-10',
-        service: 'Manutenção Preventiva',
-      },
-      {
-        id: 2,
-        user: 'Maria Santos',
-        rating: 4,
-        comment: 'Bom serviço, preço justo. Recomendo!',
-        date: '2024-01-08',
-        service: 'Troca de Pneus',
-      },
-      {
-        id: 3,
-        user: 'Pedro Costa',
-        rating: 5,
-        comment: 'Profissionais muito competentes. Voltarei sempre.',
-        date: '2024-01-05',
-        service: 'Ajuste de Freios',
-      },
-    ],
-    photos: [],
-  };
-
   useEffect(() => {
-    // Simular carregamento dos dados
-    setTimeout(() => {
-      setWorkshop(mockWorkshop);
-      setLoading(false);
-    }, 1000);
+    loadWorkshopDetails();
   }, [id]);
+
+  const loadWorkshopDetails = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await workshopService.getWorkshopById(id);
+      
+      if (response.success && response.data) {
+        const formattedWorkshop = workshopService.formatWorkshopForFrontend(response.data);
+        setWorkshop(formattedWorkshop);
+      } else {
+        throw new Error('Oficina não encontrada');
+      }
+    } catch (error) {
+      console.error('Erro ao carregar detalhes da oficina:', error);
+      setError(error.message || 'Erro ao carregar oficina');
+      toast.error('Erro ao carregar detalhes da oficina');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -183,7 +125,22 @@ const WorkshopDetail = () => {
   if (loading) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Typography>Carregando...</Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+          <CircularProgress />
+        </Box>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+          <Button onClick={loadWorkshopDetails} sx={{ ml: 2 }}>
+            Tentar Novamente
+          </Button>
+        </Alert>
       </Container>
     );
   }
@@ -191,7 +148,9 @@ const WorkshopDetail = () => {
   if (!workshop) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Typography>Oficina não encontrada</Typography>
+        <Alert severity="warning">
+          Oficina não encontrada
+        </Alert>
       </Container>
     );
   }
@@ -218,7 +177,7 @@ const WorkshopDetail = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
                   <Rating value={workshop.rating} readOnly />
                   <Typography variant="body1" color="text.secondary">
-                    {workshop.rating} ({workshop.reviewCount} avaliações)
+                    {workshop.rating} ({workshop.ratingCount} avaliações)
                   </Typography>
                 </Box>
               </Box>
@@ -395,22 +354,20 @@ const WorkshopDetail = () => {
           
           <Grid container spacing={2}>
             <Grid item xs={12}>
-              <TextField
-                select
-                fullWidth
-                label="Serviço *"
-                value={appointmentData.service}
-                onChange={(e) => setAppointmentData(prev => ({ ...prev, service: e.target.value }))}
-                margin="normal"
-                SelectProps={{ native: true }}
-              >
-                <option value="">Selecione um serviço</option>
-                {workshop.services.map((service) => (
-                  <option key={service.id} value={service.name}>
-                    {service.name} - {service.price}
-                  </option>
-                ))}
-              </TextField>
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Serviço *</InputLabel>
+                <Select
+                  value={appointmentData.service}
+                  label="Serviço *"
+                  onChange={(e) => setAppointmentData(prev => ({ ...prev, service: e.target.value }))}
+                >
+                  {workshop.services && workshop.services.map((service) => (
+                    <MenuItem key={service.id} value={service.name}>
+                      {service.name} - {service.price}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Grid>
             
             <Grid item xs={12} sm={6}>
