@@ -24,30 +24,31 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
-  Divider,
 } from '@mui/material';
 import {
-  Search,
   CalendarToday,
   Build,
-  CheckCircle,
   LocationOn,
   Phone,
   Schedule,
+  CheckCircle,
   AttachMoney,
-  DirectionsBike,
   Verified,
+  DirectionsBike,
+  PriorityHigh,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import workshopService from '../services/workshopService';
+import appointmentService from '../services/appointmentService';
 
 const Appointment = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
   const [selectedWorkshop, setSelectedWorkshop] = useState(null);
-  const [selectedService, setSelectedService] = useState(null);
+  const [selectedServices, setSelectedServices] = useState([]);
   const [appointmentData, setAppointmentData] = useState({
     date: '',
     time: '',
@@ -57,43 +58,32 @@ const Appointment = () => {
     urgency: 'normal',
   });
   const [loading, setLoading] = useState(false);
+  const [workshops, setWorkshops] = useState([]);
+  const [loadingWorkshops, setLoadingWorkshops] = useState(true);
 
-  const steps = ['Escolher Oficina', 'Selecionar Serviço', 'Agendar Data', 'Confirmar'];
+  const steps = ['Definir Urgência', 'Escolher Oficina', 'Selecionar Serviço', 'Agendar Data', 'Serviços para sua Bike', 'Confirmar'];
 
-  // Dados mockados
-  const mockWorkshops = [
-    {
-      id: 1,
-      name: 'Bike Center',
-      address: 'Rua das Flores, 123 - Centro',
-      phone: '(11) 1234-5678',
-      rating: 4.8,
-      reviewCount: 156,
-      verified: true,
-      distance: '2.3 km',
-      services: [
-        { id: 1, name: 'Manutenção Preventiva', price: 'R$ 80,00', duration: '2 horas' },
-        { id: 2, name: 'Troca de Pneus', price: 'R$ 45,00', duration: '30 min' },
-        { id: 3, name: 'Ajuste de Freios', price: 'R$ 35,00', duration: '45 min' },
-        { id: 4, name: 'Ajuste de Câmbio', price: 'R$ 40,00', duration: '1 hora' },
-      ],
-    },
-    {
-      id: 2,
-      name: 'Speed Bikes',
-      address: 'Av. Paulista, 456 - Bela Vista',
-      phone: '(11) 9876-5432',
-      rating: 4.5,
-      reviewCount: 89,
-      verified: true,
-      distance: '4.1 km',
-      services: [
-        { id: 1, name: 'Manutenção Completa', price: 'R$ 120,00', duration: '3 horas' },
-        { id: 2, name: 'Upgrade de Componentes', price: 'R$ 200,00', duration: '4 horas' },
-        { id: 3, name: 'Limpeza Profunda', price: 'R$ 60,00', duration: '1 hora' },
-      ],
-    },
-  ];
+  // Carregar oficinas da API
+  const loadWorkshops = async () => {
+    try {
+      setLoadingWorkshops(true);
+      const response = await workshopService.getWorkshops();
+      
+      if (response.success && response.data) {
+        const formattedWorkshops = response.data.map(workshop => 
+          workshopService.formatWorkshopForFrontend(workshop)
+        );
+        setWorkshops(formattedWorkshops);
+      } else {
+        throw new Error(response.message || 'Erro ao carregar oficinas');
+      }
+    } catch (error) {
+      console.error('Erro ao carregar oficinas:', error);
+      toast.error('Erro ao carregar oficinas');
+    } finally {
+      setLoadingWorkshops(false);
+    }
+  };
 
   const timeSlots = [
     '08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
@@ -105,23 +95,42 @@ const Appointment = () => {
     if (!user) {
       toast.error('Você precisa estar logado para agendar um serviço');
       navigate('/login');
+    } else {
+      loadWorkshops();
     }
   }, [user, navigate]);
 
+
+
   const handleNext = () => {
-    if (activeStep === 0 && !selectedWorkshop) {
+    if (activeStep === 1 && !selectedWorkshop) {
       toast.error('Selecione uma oficina');
       return;
     }
-    if (activeStep === 1 && !selectedService) {
-      toast.error('Selecione um serviço');
+    if (activeStep === 2 && selectedServices.length === 0) {
+      toast.error('Selecione pelo menos um serviço');
       return;
     }
-    if (activeStep === 2 && (!appointmentData.date || !appointmentData.time)) {
+    if (activeStep === 3 && (!appointmentData.date || !appointmentData.time)) {
       toast.error('Selecione data e horário');
       return;
     }
+    // Step 4 (Detalhes da Bike) é opcional, não precisa de validação obrigatória
     setActiveStep((prevActiveStep) => prevActiveStep + 1);
+  };
+
+  // Função para converter minutos em formato horas:minutos
+  const formatDuration = (totalMinutes) => {
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    
+    if (hours === 0) {
+      return `${minutes} min`;
+    } else if (minutes === 0) {
+      return `${hours}h`;
+    } else {
+      return `${hours}h ${minutes}min`;
+    }
   };
 
   const handleBack = () => {
@@ -131,12 +140,35 @@ const Appointment = () => {
   const handleConfirmAppointment = async () => {
     setLoading(true);
     try {
-      // Simular envio do agendamento
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      toast.success('Agendamento realizado com sucesso! A oficina entrará em contato para confirmar.');
-      navigate('/dashboard');
+      const appointmentPayload = {
+        workshopId: selectedWorkshop.id,
+        appointmentDate: appointmentData.date,
+        appointmentTime: appointmentData.time,
+        serviceType: 'custom',
+        requestedServices: selectedServices.map(service => ({
+          name: service.name,
+          price: service.basePrice,
+          duration: service.estimatedTime
+        })),
+        bikeInfo: {
+          model: appointmentData.bikeModel,
+          year: appointmentData.bikeYear ? parseInt(appointmentData.bikeYear) : undefined
+        },
+        description: appointmentData.description,
+        urgency: appointmentData.urgency
+      };
+
+      const response = await appointmentService.createAppointment(appointmentPayload);
+      
+      if (response.success) {
+        toast.success('Agendamento realizado com sucesso! A oficina entrará em contato para confirmar.');
+        navigate('/dashboard');
+      } else {
+        throw new Error(response.message);
+      }
     } catch (error) {
-      toast.error('Erro ao realizar agendamento. Tente novamente.');
+      console.error('Erro ao criar agendamento:', error);
+      toast.error(error.message || 'Erro ao realizar agendamento. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -149,23 +181,120 @@ const Appointment = () => {
           <Grid container spacing={3}>
             <Grid item xs={12}>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                Escolha uma oficina próxima a você
+                Defina o nível de urgência do seu serviço
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Esta informação nos ajuda a priorizar seu atendimento e destacar as oficinas mais adequadas
               </Typography>
             </Grid>
-            {mockWorkshops.map((workshop) => (
+            
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Nível de Urgência</InputLabel>
+                <Select
+                  value={appointmentData.urgency}
+                  label="Nível de Urgência"
+                  onChange={(e) => setAppointmentData(prev => ({ ...prev, urgency: e.target.value }))}
+                >
+                  <MenuItem value="low">
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography>Baixa - Posso aguardar alguns dias</Typography>
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="normal">
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography>Normal - Alguns dias seria ideal</Typography>
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="high">
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <PriorityHigh color="error" />
+                      <Typography sx={{ color: 'error.main', fontWeight: 600 }}>Alta - Preciso urgente!</Typography>
+                    </Box>
+                  </MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            
+            {appointmentData.urgency === 'high' && (
+              <Grid item xs={12}>
+                <Alert severity="warning">
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    🚨 Serviço marcado como URGENTE!
+                  </Typography>
+                  <Typography variant="body2">
+                    As oficinas serão destacadas para atendimento prioritário. Você pode esperar uma resposta mais rápida.
+                  </Typography>
+                </Alert>
+              </Grid>
+            )}
+          </Grid>
+        );
+
+      case 1:
+        return (
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                Escolha uma oficina próxima a você
+              </Typography>
+              {appointmentData.urgency === 'high' && (
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <PriorityHigh />
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      Serviço marcado como URGENTE - As oficinas estão destacadas para atendimento prioritário
+                    </Typography>
+                  </Box>
+                </Alert>
+              )}
+            </Grid>
+            {loadingWorkshops ? (
+              <Grid item xs={12}>
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                  <Typography>Carregando oficinas...</Typography>
+                </Box>
+              </Grid>
+            ) : workshops.length === 0 ? (
+              <Grid item xs={12}>
+                <Alert severity="info">
+                  Nenhuma oficina encontrada. Tente novamente mais tarde.
+                </Alert>
+              </Grid>
+            ) : workshops.map((workshop) => (
               <Grid item xs={12} md={6} key={workshop.id}>
                 <Card 
                   sx={{ 
                     cursor: 'pointer',
                     border: selectedWorkshop?.id === workshop.id ? 2 : 1,
-                    borderColor: selectedWorkshop?.id === workshop.id ? 'primary.main' : 'divider',
-                    '&:hover': { borderColor: 'primary.main' }
+                    borderColor: selectedWorkshop?.id === workshop.id ? 'primary.main' : 
+                                appointmentData.urgency === 'high' ? 'error.main' : 'divider',
+                    '&:hover': { borderColor: appointmentData.urgency === 'high' ? 'error.main' : 'primary.main' },
+                    backgroundColor: appointmentData.urgency === 'high' ? 'error.light' : 'background.paper',
+                    boxShadow: appointmentData.urgency === 'high' ? '0 4px 20px rgba(244, 67, 54, 0.3)' : 1
                   }}
                   onClick={() => setSelectedWorkshop(workshop)}
                 >
                   <CardContent>
+                    {appointmentData.urgency === 'high' && (
+                      <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 1, 
+                        mb: 1, 
+                        p: 1, 
+                        backgroundColor: 'error.main', 
+                        color: 'error.contrastText',
+                        borderRadius: 1
+                      }}>
+                        <PriorityHigh fontSize="small" />
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          ATENDIMENTO PRIORITÁRIO PARA URGÊNCIA
+                        </Typography>
+                      </Box>
+                    )}
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                      <Avatar sx={{ bgcolor: appointmentData.urgency === 'high' ? 'error.main' : 'primary.main', mr: 2 }}>
                         <Build />
                       </Avatar>
                       <Box sx={{ flexGrow: 1 }}>
@@ -175,6 +304,15 @@ const Appointment = () => {
                           </Typography>
                           {workshop.verified && (
                             <Verified color="primary" fontSize="small" />
+                          )}
+                          {appointmentData.urgency === 'high' && (
+                            <Chip 
+                              icon={<PriorityHigh />} 
+                              label="URGENTE" 
+                              color="error" 
+                              size="small" 
+                              sx={{ fontWeight: 600 }}
+                            />
                           )}
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -207,10 +345,32 @@ const Appointment = () => {
                 </Card>
               </Grid>
             ))}
+            {selectedServices.length > 0 && (
+              <Grid item xs={12}>
+                <Paper sx={{ p: 2, mt: 2, backgroundColor: 'primary.light', color: 'primary.contrastText' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      Total de Serviço Previsto:
+                    </Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                      R$ {selectedServices.reduce((total, service) => total + service.basePrice, 0)}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      Tempo Total Previsto:
+                    </Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                      {formatDuration(selectedServices.reduce((total, service) => total + service.estimatedTime, 0))}
+                    </Typography>
+                  </Box>
+                </Paper>
+              </Grid>
+            )}
           </Grid>
         );
 
-      case 1:
+      case 2:
         return (
           <Grid container spacing={3}>
             <Grid item xs={12}>
@@ -220,33 +380,54 @@ const Appointment = () => {
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                 Oficina selecionada: <strong>{selectedWorkshop?.name}</strong>
               </Typography>
+              {!selectedWorkshop?.services || selectedWorkshop.services.length === 0 ? (
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  Esta oficina não possui serviços cadastrados no momento.
+                </Alert>
+              ) : (
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Selecione um ou mais serviços ({selectedWorkshop.services.length} disponíveis)
+                </Typography>
+              )}
             </Grid>
             {selectedWorkshop?.services.map((service) => (
               <Grid item xs={12} md={6} key={service.id}>
                 <Card 
                   sx={{ 
                     cursor: 'pointer',
-                    border: selectedService?.id === service.id ? 2 : 1,
-                    borderColor: selectedService?.id === service.id ? 'primary.main' : 'divider',
+                    border: selectedServices.some(s => s.id === service.id) ? 2 : 1,
+                    borderColor: selectedServices.some(s => s.id === service.id) ? 'primary.main' : 'divider',
                     '&:hover': { borderColor: 'primary.main' }
                   }}
-                  onClick={() => setSelectedService(service)}
+                  onClick={() => {
+                    const isSelected = selectedServices.some(s => s.id === service.id);
+                    if (isSelected) {
+                      setSelectedServices(selectedServices.filter(s => s.id !== service.id));
+                    } else {
+                      setSelectedServices([...selectedServices, service]);
+                    }
+                  }}
                 >
                   <CardContent>
-                    <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                      {service.name}
-                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                        {service.name}
+                      </Typography>
+                      {selectedServices.some(s => s.id === service.id) && (
+                        <CheckCircle sx={{ color: 'primary.main', fontSize: 20 }} />
+                      )}
+                    </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <AttachMoney sx={{ fontSize: 16, color: 'primary.main' }} />
                         <Typography variant="body1" color="primary" sx={{ fontWeight: 600 }}>
-                          {service.price}
+                          R$ {service.basePrice}
                         </Typography>
                       </Box>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Schedule sx={{ fontSize: 16, color: 'text.secondary' }} />
                         <Typography variant="body2" color="text.secondary">
-                          {service.duration}
+                          {service.estimatedTime} min
                         </Typography>
                       </Box>
                     </Box>
@@ -257,13 +438,32 @@ const Appointment = () => {
           </Grid>
         );
 
-      case 2:
+      case 3:
         return (
-          <Grid container spacing={{ xs: 2, md: 3 }}>
+          <Grid container spacing={3}>
             <Grid item xs={12}>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                Escolha data e horário
+                Agende a data e horário
               </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Serviços selecionados:
+              </Typography>
+              <Box sx={{ mb: 3 }}>
+                {selectedServices.map((service, index) => (
+                  <Chip
+                    key={service.id}
+                    label={`${service.name} - R$ ${service.basePrice}`}
+                    sx={{ mr: 1, mb: 1 }}
+                    color="primary"
+                    variant="outlined"
+                  />
+                ))}
+                {selectedServices.length === 0 && (
+                  <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                    Nenhum serviço selecionado
+                  </Typography>
+                )}
+              </Box>
             </Grid>
             
             <Grid item xs={12} md={6}>
@@ -294,6 +494,20 @@ const Appointment = () => {
                   ))}
                 </Select>
               </FormControl>
+            </Grid>
+          </Grid>
+        );
+
+      case 4:
+        return (
+          <Grid container spacing={{ xs: 2, md: 3 }}>
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                Informações da sua bike
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Nos conte mais sobre sua bike para um atendimento personalizado
+              </Typography>
             </Grid>
             
             <Grid item xs={12} md={6}>
@@ -333,21 +547,6 @@ const Appointment = () => {
             </Grid>
             
             <Grid item xs={12}>
-              <FormControl fullWidth size={window.innerWidth < 768 ? 'small' : 'medium'}>
-                <InputLabel>Urgência</InputLabel>
-                <Select
-                  value={appointmentData.urgency}
-                  label="Urgência"
-                  onChange={(e) => setAppointmentData(prev => ({ ...prev, urgency: e.target.value }))}
-                >
-                  <MenuItem value="low">Baixa - Posso aguardar</MenuItem>
-                  <MenuItem value="normal">Normal - Alguns dias</MenuItem>
-                  <MenuItem value="high">Alta - Preciso urgente</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            
-            <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Descrição do Problema"
@@ -362,7 +561,7 @@ const Appointment = () => {
           </Grid>
         );
 
-      case 3:
+      case 5:
         return (
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
@@ -385,8 +584,24 @@ const Appointment = () => {
                   <DirectionsBike />
                 </ListItemIcon>
                 <ListItemText
-                  primary="Serviço"
-                  secondary={`${selectedService?.name} - ${selectedService?.price}`}
+                  primary="Serviços"
+                  secondary={
+                    <Box>
+                      {selectedServices.map((service, index) => (
+                        <Typography key={service.id} variant="body2" component="div">
+                          {service.name} - R$ {service.basePrice} ({service.estimatedTime} min)
+                        </Typography>
+                      ))}
+                      {selectedServices.length > 0 && (
+                        <Box sx={{ mt: 1, pt: 1, borderTop: 1, borderColor: 'divider' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            Total: R$ {selectedServices.reduce((total, service) => total + service.basePrice, 0)} 
+                            ({formatDuration(selectedServices.reduce((total, service) => total + service.estimatedTime, 0))})
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  }
                 />
               </ListItem>
               
@@ -397,6 +612,33 @@ const Appointment = () => {
                 <ListItemText
                   primary="Data e Horário"
                   secondary={`${new Date(appointmentData.date).toLocaleDateString('pt-BR')} às ${appointmentData.time}`}
+                />
+              </ListItem>
+              
+              <ListItem>
+                <ListItemIcon>
+                  {appointmentData.urgency === 'high' ? <PriorityHigh color="error" /> : <Schedule />}
+                </ListItemIcon>
+                <ListItemText
+                  primary="Urgência"
+                  secondary={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          color: appointmentData.urgency === 'high' ? 'error.main' : 'text.secondary',
+                          fontWeight: appointmentData.urgency === 'high' ? 600 : 400
+                        }}
+                      >
+                        {appointmentData.urgency === 'low' && 'Baixa - Posso aguardar'}
+                        {appointmentData.urgency === 'normal' && 'Normal - Alguns dias'}
+                        {appointmentData.urgency === 'high' && 'Alta - Preciso urgente!'}
+                      </Typography>
+                      {appointmentData.urgency === 'high' && (
+                        <Chip label="URGENTE" color="error" size="small" sx={{ fontWeight: 600 }} />
+                      )}
+                    </Box>
+                  }
                 />
               </ListItem>
               

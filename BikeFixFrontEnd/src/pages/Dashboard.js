@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -7,64 +7,174 @@ import {
   Card,
   CardContent,
   Button,
+  Rating,
+  Chip,
   Paper,
   List,
   ListItem,
   ListItemText,
   ListItemIcon,
-  Chip,
+  Alert,
+  CircularProgress,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
 } from '@mui/material';
 import {
-  Schedule,
   Build,
-  History,
+  Schedule,
+  Verified,
   Notifications,
   Search,
   Add,
   CheckCircle,
   Pending,
   Cancel,
+  History,
+  Delete,
 } from '@mui/icons-material';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import workshopService from '../services/workshopService';
+import appointmentService from '../services/appointmentService';
+import { toast } from 'react-toastify';
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const [nearbyWorkshops, setNearbyWorkshops] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [workshopsLoading, setWorkshopsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Dados mockados para demonstração
-  const recentAppointments = [
-    {
-      id: 1,
-      workshop: 'Bike Center',
-      service: 'Manutenção Preventiva',
-      date: '2024-01-15',
-      time: '14:00',
-      status: 'confirmed',
-    },
-    {
-      id: 2,
-      workshop: 'Speed Bikes',
-      service: 'Troca de Pneus',
-      date: '2024-01-20',
-      time: '10:30',
-      status: 'pending',
-    },
-  ];
+  const [recentAppointments, setRecentAppointments] = useState([]);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelling, setCancelling] = useState(false);
 
-  const notifications = [
-    {
-      id: 1,
-      title: 'Agendamento Confirmado',
-      message: 'Seu agendamento na Bike Center foi confirmado',
-      time: '2 horas atrás',
-    },
-    {
-      id: 2,
-      title: 'Orçamento Disponível',
-      message: 'Speed Bikes enviou um orçamento para seu serviço',
-      time: '1 dia atrás',
-    },
-  ];
+  const [notifications, setNotifications] = useState([]);
+
+  // Redirecionar para login se não estiver autenticado
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      navigate('/login', { replace: true });
+    }
+  }, [authLoading, isAuthenticated, navigate]);
+
+  // Carregar dados quando usuário estiver autenticado
+  useEffect(() => {
+    // Só carregar dados se o usuário estiver autenticado e não estiver carregando
+    if (user && !authLoading && isAuthenticated) {
+      loadDashboardData();
+      loadUserAppointments();
+    }
+  }, [user, authLoading, isAuthenticated]);
+
+  // Mostrar loading enquanto verifica autenticação
+  if (authLoading) {
+    return (
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4, display: 'flex', justifyContent: 'center' }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
+
+  // Se não estiver autenticado, não renderizar nada (será redirecionado)
+  if (!isAuthenticated) {
+    return null;
+  }
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Carregar oficinas próximas
+      await loadNearbyWorkshops();
+      
+      setLoading(false);
+    } catch (error) {
+      console.error('Erro ao carregar dados do dashboard:', error);
+      setError('Erro ao carregar dados do dashboard');
+      setLoading(false);
+    }
+  };
+
+  const loadUserAppointments = async () => {
+    try {
+      const response = await appointmentService.getUserAppointments();
+      // Pegar apenas os 5 agendamentos mais recentes
+      const recent = (response.data || []).slice(0, 5);
+      setRecentAppointments(recent);
+    } catch (error) {
+      console.error('Erro ao carregar agendamentos:', error);
+      // Não mostrar erro para agendamentos, apenas log
+    }
+  };
+
+  const loadNearbyWorkshops = async () => {
+    try {
+      setWorkshopsLoading(true);
+      
+      // Tentar obter localização do usuário
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            try {
+              const { latitude, longitude } = position.coords;
+              const response = await workshopService.getNearbyWorkshops(latitude, longitude, 10);
+              
+              if (response.success && response.data) {
+                const formattedWorkshops = response.data.map(workshop => 
+                  workshopService.formatWorkshopForFrontend(workshop)
+                ).slice(0, 3); // Mostrar apenas as 3 primeiras
+                setNearbyWorkshops(formattedWorkshops);
+              }
+            } catch (error) {
+              console.error('Erro ao buscar oficinas próximas:', error);
+              // Fallback: carregar todas as oficinas
+              await loadAllWorkshops();
+            } finally {
+              setWorkshopsLoading(false);
+            }
+          },
+          async (error) => {
+            console.warn('Geolocalização não disponível:', error);
+            // Fallback: carregar todas as oficinas
+            await loadAllWorkshops();
+          }
+        );
+      } else {
+        // Fallback: carregar todas as oficinas
+        await loadAllWorkshops();
+      }
+    } catch (error) {
+      console.error('Erro ao carregar oficinas:', error);
+      setWorkshopsLoading(false);
+    }
+  };
+
+  const loadAllWorkshops = async () => {
+    try {
+      const response = await workshopService.getAllWorkshops();
+      
+      if (response.success && response.data) {
+        const formattedWorkshops = response.data.map(workshop => 
+          workshopService.formatWorkshopForFrontend(workshop)
+        ).slice(0, 3); // Mostrar apenas as 3 primeiras
+        setNearbyWorkshops(formattedWorkshops);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar todas as oficinas:', error);
+      toast.error('Erro ao carregar oficinas');
+    } finally {
+      setWorkshopsLoading(false);
+    }
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -103,6 +213,49 @@ const Dashboard = () => {
       default:
         return 'Agendado';
     }
+  };
+
+  const handleCancelAppointment = (appointment) => {
+    setSelectedAppointment(appointment);
+    setCancelDialogOpen(true);
+  };
+
+  const confirmCancelAppointment = async () => {
+    if (!selectedAppointment) return;
+    
+    try {
+      setCancelling(true);
+      const response = await appointmentService.cancelAppointment(selectedAppointment.id, cancelReason);
+      
+      if (response.success) {
+        // Atualizar a lista de agendamentos
+        setRecentAppointments(prev => 
+          prev.map(apt => 
+            (apt.id || apt._id) === (selectedAppointment.id || selectedAppointment._id)
+              ? { ...apt, status: 'cancelled' }
+              : apt
+          )
+        );
+        
+        toast.success('Agendamento cancelado com sucesso!');
+        setCancelDialogOpen(false);
+        setCancelReason('');
+        setSelectedAppointment(null);
+      } else {
+        toast.error(response.message || 'Erro ao cancelar agendamento.');
+      }
+    } catch (error) {
+      console.error('Erro ao cancelar agendamento:', error);
+      toast.error('Erro ao cancelar agendamento. Tente novamente.');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const closeCancelDialog = () => {
+    setCancelDialogOpen(false);
+    setCancelReason('');
+    setSelectedAppointment(null);
   };
 
   return (
@@ -204,7 +357,7 @@ const Dashboard = () => {
           </Grid>
 
           {/* Próximos Agendamentos */}
-          <Paper sx={{ p: 3 }}>
+          <Paper sx={{ p: 3, mb: 3 }}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
               Próximos Agendamentos
             </Typography>
@@ -219,7 +372,7 @@ const Dashboard = () => {
                       primary={
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-                            {appointment.workshop}
+                            {appointment.workshop?.name || appointment.workshopName || 'Oficina'}
                           </Typography>
                           <Chip
                             label={getStatusText(appointment.status)}
@@ -231,14 +384,24 @@ const Dashboard = () => {
                       secondary={
                         <>
                           <Typography variant="body2" color="text.secondary">
-                            {appointment.service}
+                            {appointment.serviceType || appointment.service}
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            {new Date(appointment.date).toLocaleDateString('pt-BR')} às {appointment.time}
+                            {new Date(appointment.appointmentDate || appointment.date).toLocaleDateString('pt-BR')} às {appointment.appointmentTime || appointment.time}
                           </Typography>
                         </>
                       }
                     />
+                    {appointmentService.canCancelAppointment(appointment) && (
+                      <IconButton
+                        edge="end"
+                        color="error"
+                        onClick={() => handleCancelAppointment(appointment)}
+                        sx={{ ml: 1 }}
+                      >
+                        <Delete />
+                      </IconButton>
+                    )}
                   </ListItem>
                 ))}
               </List>
@@ -261,6 +424,8 @@ const Dashboard = () => {
               </Box>
             )}
           </Paper>
+
+
         </Grid>
 
         {/* Sidebar com Notificações */}
@@ -308,7 +473,7 @@ const Dashboard = () => {
               <Grid item xs={6}>
                 <Box sx={{ textAlign: 'center' }}>
                   <Typography variant="h4" color="primary.main" sx={{ fontWeight: 600 }}>
-                    12
+                    {recentAppointments.filter(a => a.status === 'completed').length}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Serviços Realizados
@@ -318,17 +483,17 @@ const Dashboard = () => {
               <Grid item xs={6}>
                 <Box sx={{ textAlign: 'center' }}>
                   <Typography variant="h4" color="primary.main" sx={{ fontWeight: 600 }}>
-                    3
+                    {nearbyWorkshops.length}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Oficinas Favoritas
+                    Oficinas Próximas
                   </Typography>
                 </Box>
               </Grid>
               <Grid item xs={6}>
                 <Box sx={{ textAlign: 'center' }}>
                   <Typography variant="h4" color="primary.main" sx={{ fontWeight: 600 }}>
-                    R$ 450
+                    R$ {recentAppointments.reduce((total, a) => total + (a.totalPrice || a.price || 0), 0).toFixed(0)}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Gasto Total
@@ -338,7 +503,7 @@ const Dashboard = () => {
               <Grid item xs={6}>
                 <Box sx={{ textAlign: 'center' }}>
                   <Typography variant="h4" color="primary.main" sx={{ fontWeight: 600 }}>
-                    4.8
+                    {nearbyWorkshops.length > 0 ? (nearbyWorkshops.reduce((sum, w) => sum + (w.rating || 0), 0) / nearbyWorkshops.length).toFixed(1) : '0.0'}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Avaliação Média
@@ -349,8 +514,40 @@ const Dashboard = () => {
           </Paper>
         </Grid>
       </Grid>
-    </Container>
-  );
+        
+        {/* Diálogo de Cancelamento */}
+        <Dialog open={cancelDialogOpen} onClose={closeCancelDialog} maxWidth="sm" fullWidth>
+          <DialogTitle>Cancelar Agendamento</DialogTitle>
+          <DialogContent>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              Tem certeza que deseja cancelar o agendamento na oficina {selectedAppointment?.workshop?.name || selectedAppointment?.workshopName}?
+            </Typography>
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Motivo do cancelamento (opcional)"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="Informe o motivo do cancelamento..."
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={closeCancelDialog} disabled={cancelling}>
+              Voltar
+            </Button>
+            <Button 
+              onClick={confirmCancelAppointment} 
+              color="error" 
+              variant="contained"
+              disabled={cancelling}
+            >
+              {cancelling ? <CircularProgress size={20} /> : 'Cancelar Agendamento'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Container>
+    );
 };
 
 export default Dashboard;

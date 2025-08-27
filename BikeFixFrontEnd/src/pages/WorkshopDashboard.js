@@ -34,6 +34,8 @@ import {
   ListItemIcon,
   Divider,
   Badge,
+  CircularProgress,
+  Skeleton,
 } from '@mui/material';
 import {
   CalendarToday,
@@ -51,10 +53,12 @@ import {
   DirectionsBike,
   Star,
   Assignment,
+  PriorityHigh,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import appointmentService from '../services/appointmentService';
 
 const WorkshopDashboard = () => {
   const { user } = useAuth();
@@ -64,101 +68,69 @@ const WorkshopDashboard = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(false);
+  const [appointments, setAppointments] = useState([]);
+  const [stats, setStats] = useState({
+    todayAppointments: 0,
+    weekRevenue: 0,
+    monthlyGrowth: 0,
+    pendingQuotes: 0,
+    averageRating: 0,
+    totalReviews: 0,
+  });
+  const [loadingData, setLoadingData] = useState(true);
 
-  // Dados mockados
-  const mockStats = {
-    todayAppointments: 8,
-    weekRevenue: 2450,
-    monthlyGrowth: 12.5,
-    pendingQuotes: 5,
-    averageRating: 4.7,
-    totalReviews: 156,
+  const [notifications, setNotifications] = useState([]);
+
+  // Função para carregar agendamentos da oficina
+  const loadWorkshopAppointments = async () => {
+    try {
+      setLoadingData(true);
+      const response = await appointmentService.getWorkshopAppointments(user.id);
+      setAppointments(response.data || []);
+      
+      // Calcular estatísticas baseadas nos agendamentos
+      calculateStats(response.data || []);
+    } catch (error) {
+      console.error('Erro ao carregar agendamentos:', error);
+      toast.error('Erro ao carregar agendamentos');
+    } finally {
+      setLoadingData(false);
+    }
   };
 
-  const mockAppointments = [
-    {
-      id: 1,
-      customerName: 'João Silva',
-      customerPhone: '(11) 99999-1111',
-      service: 'Manutenção Preventiva',
-      bikeModel: 'Trek FX 3',
-      date: '2024-01-15',
-      time: '09:00',
-      status: 'confirmed',
-      price: 80,
-      description: 'Revisão geral da bike, ajuste de freios e câmbio',
-      urgency: 'normal',
-    },
-    {
-      id: 2,
-      customerName: 'Maria Santos',
-      customerPhone: '(11) 88888-2222',
-      service: 'Troca de Pneus',
-      bikeModel: 'Specialized Sirrus',
-      date: '2024-01-15',
-      time: '10:30',
-      status: 'pending',
-      price: 45,
-      description: 'Pneu furado, precisa trocar os dois pneus',
-      urgency: 'high',
-    },
-    {
-      id: 3,
-      customerName: 'Carlos Oliveira',
-      customerPhone: '(11) 77777-3333',
-      service: 'Ajuste de Freios',
-      bikeModel: 'Caloi Elite',
-      date: '2024-01-15',
-      time: '14:00',
-      status: 'in_progress',
-      price: 35,
-      description: 'Freios fazendo barulho',
-      urgency: 'normal',
-    },
-    {
-      id: 4,
-      customerName: 'Ana Costa',
-      customerPhone: '(11) 66666-4444',
-      service: 'Upgrade de Componentes',
-      bikeModel: 'Giant Escape',
-      date: '2024-01-16',
-      time: '08:00',
-      status: 'completed',
-      price: 200,
-      description: 'Upgrade do grupo de transmissão',
-      urgency: 'low',
-    },
-  ];
-
-  const mockNotifications = [
-    {
-      id: 1,
-      type: 'new_appointment',
-      message: 'Novo agendamento de João Silva para amanhã às 09:00',
-      time: '5 min atrás',
-      read: false,
-    },
-    {
-      id: 2,
-      type: 'review',
-      message: 'Nova avaliação 5 estrelas de Maria Santos',
-      time: '1 hora atrás',
-      read: false,
-    },
-    {
-      id: 3,
-      type: 'payment',
-      message: 'Pagamento de R$ 80,00 confirmado',
-      time: '2 horas atrás',
-      read: true,
-    },
-  ];
+  // Função para calcular estatísticas
+  const calculateStats = (appointmentsData) => {
+    const today = new Date().toISOString().split('T')[0];
+    const todayAppointments = appointmentsData.filter(apt => apt.date === today).length;
+    
+    // Calcular receita da semana (últimos 7 dias)
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const weekRevenue = appointmentsData
+      .filter(apt => new Date(apt.date) >= weekAgo && apt.status === 'completed')
+      .reduce((sum, apt) => sum + (apt.totalPrice || 0), 0);
+    
+    const pendingQuotes = appointmentsData.filter(apt => apt.status === 'pending').length;
+    
+    setStats({
+      todayAppointments,
+      weekRevenue,
+      monthlyGrowth: 0, // Seria calculado com dados históricos
+      pendingQuotes,
+      averageRating: user.workshopData?.rating?.average || 0,
+      totalReviews: user.workshopData?.rating?.count || 0,
+    });
+  };
 
   useEffect(() => {
     if (!user || user.userType !== 'workshop') {
       toast.error('Acesso negado. Área restrita para oficinas.');
       navigate('/login');
+      return;
     }
+    
+    // Carregar dados da oficina
+    loadWorkshopAppointments();
   }, [user, navigate]);
 
   const handleTabChange = (event, newValue) => {
@@ -173,11 +145,13 @@ const WorkshopDashboard = () => {
   const handleUpdateStatus = async (appointmentId, newStatus) => {
     setLoading(true);
     try {
-      // Simular atualização do status
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await appointmentService.updateAppointmentStatus(appointmentId, newStatus);
       toast.success('Status atualizado com sucesso!');
       setDialogOpen(false);
+      // Recarregar agendamentos
+      loadWorkshopAppointments();
     } catch (error) {
+      console.error('Erro ao atualizar status:', error);
       toast.error('Erro ao atualizar status');
     } finally {
       setLoading(false);
@@ -216,10 +190,28 @@ const WorkshopDashboard = () => {
   };
 
   const filteredAppointments = statusFilter === 'all' 
-    ? mockAppointments 
-    : mockAppointments.filter(apt => apt.status === statusFilter);
+    ? appointments 
+    : appointments.filter(apt => apt.status === statusFilter);
 
-  const renderOverview = () => (
+  const renderOverview = () => {
+    if (loadingData) {
+      return (
+        <Grid container spacing={3}>
+          {[1, 2, 3, 4].map((item) => (
+            <Grid item xs={12} sm={6} md={3} key={item}>
+              <Card>
+                <CardContent>
+                  <Skeleton variant="text" width="60%" />
+                  <Skeleton variant="text" width="40%" height={40} />
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      );
+    }
+    
+    return (
     <Grid container spacing={3}>
       <Grid item xs={12} sm={6} md={3}>
         <Card>
@@ -230,7 +222,7 @@ const WorkshopDashboard = () => {
                   Agendamentos Hoje
                 </Typography>
                 <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                  {mockStats.todayAppointments}
+                  {stats.todayAppointments}
                 </Typography>
               </Box>
               <Avatar sx={{ bgcolor: 'primary.main' }}>
@@ -250,7 +242,7 @@ const WorkshopDashboard = () => {
                   Receita Semanal
                 </Typography>
                 <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                  R$ {mockStats.weekRevenue.toLocaleString()}
+                  R$ {stats.weekRevenue.toLocaleString()}
                 </Typography>
               </Box>
               <Avatar sx={{ bgcolor: 'success.main' }}>
@@ -270,7 +262,7 @@ const WorkshopDashboard = () => {
                   Crescimento Mensal
                 </Typography>
                 <Typography variant="h4" sx={{ fontWeight: 600, color: 'success.main' }}>
-                  +{mockStats.monthlyGrowth}%
+                  +{stats.monthlyGrowth}%
                 </Typography>
               </Box>
               <Avatar sx={{ bgcolor: 'info.main' }}>
@@ -291,7 +283,7 @@ const WorkshopDashboard = () => {
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                    {mockStats.averageRating}
+                    {stats.averageRating}
                   </Typography>
                   <Star sx={{ color: 'warning.main' }} />
                 </Box>
@@ -322,11 +314,11 @@ const WorkshopDashboard = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {mockAppointments.slice(0, 3).map((appointment) => (
-                    <TableRow key={appointment.id}>
-                      <TableCell>{appointment.customerName}</TableCell>
-                      <TableCell>{appointment.service}</TableCell>
-                      <TableCell>{appointment.time}</TableCell>
+                  {appointments.slice(0, 3).map((appointment) => (
+                    <TableRow key={appointment._id}>
+                      <TableCell>{appointment.cyclist?.name || appointment.customerName}</TableCell>
+                      <TableCell>{appointment.serviceType || appointment.service}</TableCell>
+                      <TableCell>{appointment.appointmentTime || appointment.time}</TableCell>
                       <TableCell>
                         <Chip
                           label={getStatusLabel(appointment.status)}
@@ -363,29 +355,65 @@ const WorkshopDashboard = () => {
               </Badge>
             </Box>
             <List>
-              {mockNotifications.map((notification, index) => (
-                <React.Fragment key={notification.id}>
-                  <ListItem sx={{ px: 0 }}>
-                    <ListItemText
-                      primary={notification.message}
-                      secondary={notification.time}
-                      primaryTypographyProps={{
-                        variant: 'body2',
-                        fontWeight: notification.read ? 400 : 600
-                      }}
-                    />
-                  </ListItem>
-                  {index < mockNotifications.length - 1 && <Divider />}
-                </React.Fragment>
-              ))}
+              {notifications.length > 0 ? (
+                notifications.map((notification, index) => (
+                  <React.Fragment key={notification.id || index}>
+                    <ListItem sx={{ px: 0 }}>
+                      <ListItemText
+                        primary={notification.message}
+                        secondary={notification.time}
+                        primaryTypographyProps={{
+                          variant: 'body2',
+                          fontWeight: notification.read ? 400 : 600
+                        }}
+                      />
+                    </ListItem>
+                    {index < notifications.length - 1 && <Divider />}
+                  </React.Fragment>
+                ))
+              ) : (
+                <ListItem sx={{ px: 0 }}>
+                  <ListItemText
+                    primary="Nenhuma notificação"
+                    secondary="Você está em dia!"
+                    primaryTypographyProps={{
+                      variant: 'body2',
+                      color: 'text.secondary'
+                    }}
+                  />
+                </ListItem>
+              )}
             </List>
           </CardContent>
         </Card>
       </Grid>
     </Grid>
-  );
+    );
+  };
 
-  const renderAppointments = () => (
+  const renderAppointments = () => {
+    if (loadingData) {
+      return (
+        <Box>
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <CircularProgress />
+          </Box>
+        </Box>
+      );
+    }
+    
+    if (appointments.length === 0) {
+      return (
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <CalendarToday sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+          <Typography variant="h6" color="text.secondary">
+            Nenhum agendamento encontrado
+          </Typography>
+        </Box>
+      );
+    }
+    
+    return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -423,18 +451,42 @@ const WorkshopDashboard = () => {
           </TableHead>
           <TableBody>
             {filteredAppointments.map((appointment) => (
-              <TableRow key={appointment.id}>
+              <TableRow 
+                key={appointment.id}
+                sx={{
+                  backgroundColor: appointment.urgency === 'high' ? 'error.light' : 'inherit',
+                  '&:hover': {
+                    backgroundColor: appointment.urgency === 'high' ? 'error.main' : 'action.hover',
+                  },
+                  borderLeft: appointment.urgency === 'high' ? '4px solid' : 'none',
+                  borderLeftColor: appointment.urgency === 'high' ? 'error.main' : 'transparent',
+                }}
+              >
                 <TableCell>
-                  <Box>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {appointment.customerName}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {appointment.customerPhone}
-                    </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {appointment.urgency === 'high' && (
+                      <PriorityHigh color="error" sx={{ fontSize: 20 }} />
+                    )}
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {appointment.cyclist?.name || appointment.customerName || 'N/A'}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {appointment.cyclist?.phone || appointment.customerPhone || 'N/A'}
+                      </Typography>
+                    </Box>
                   </Box>
                 </TableCell>
-                <TableCell>{appointment.service}</TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body2">
+                      {appointment.service}
+                    </Typography>
+                    {appointment.urgency === 'high' && (
+                      <Chip label="URGENTE" color="error" size="small" sx={{ fontWeight: 600 }} />
+                    )}
+                  </Box>
+                </TableCell>
                 <TableCell>
                   <Box>
                     <Typography variant="body2">
@@ -445,13 +497,21 @@ const WorkshopDashboard = () => {
                     </Typography>
                   </Box>
                 </TableCell>
-                <TableCell>{appointment.bikeModel}</TableCell>
+                <TableCell>{appointment.bikeInfo?.model || appointment.bikeModel || 'N/A'}</TableCell>
                 <TableCell>
-                  <Chip
-                    label={appointment.urgency === 'high' ? 'Alta' : appointment.urgency === 'normal' ? 'Normal' : 'Baixa'}
-                    color={getUrgencyColor(appointment.urgency)}
-                    size="small"
-                  />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {appointment.urgency === 'high' && (
+                      <PriorityHigh color="error" sx={{ fontSize: 16 }} />
+                    )}
+                    <Chip
+                      label={appointment.urgency === 'high' ? 'Alta' : appointment.urgency === 'normal' ? 'Normal' : 'Baixa'}
+                      color={getUrgencyColor(appointment.urgency)}
+                      size="small"
+                      sx={{
+                        fontWeight: appointment.urgency === 'high' ? 600 : 400,
+                      }}
+                    />
+                  </Box>
                 </TableCell>
                 <TableCell>
                   <Chip
@@ -460,7 +520,7 @@ const WorkshopDashboard = () => {
                     size="small"
                   />
                 </TableCell>
-                <TableCell>R$ {appointment.price}</TableCell>
+                <TableCell>R$ {appointment.totalPrice || appointment.price || 0}</TableCell>
                 <TableCell>
                   <IconButton
                     size="small"
@@ -478,7 +538,8 @@ const WorkshopDashboard = () => {
         </Table>
       </TableContainer>
     </Box>
-  );
+    );
+  };
 
   if (!user || user.userType !== 'workshop') {
     return null;
@@ -526,10 +587,10 @@ const WorkshopDashboard = () => {
                   Cliente
                 </Typography>
                 <Typography variant="body1" sx={{ mb: 2 }}>
-                  {selectedAppointment.customerName}
+                  {selectedAppointment.cyclist?.name || selectedAppointment.customerName || 'N/A'}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  {selectedAppointment.customerPhone}
+                  {selectedAppointment.cyclist?.phone || selectedAppointment.customerPhone || 'N/A'}
                 </Typography>
               </Grid>
               
@@ -538,10 +599,10 @@ const WorkshopDashboard = () => {
                   Serviço
                 </Typography>
                 <Typography variant="body1" sx={{ mb: 2 }}>
-                  {selectedAppointment.service}
+                  {selectedAppointment.serviceType || selectedAppointment.service}
                 </Typography>
                 <Typography variant="body2" color="primary" sx={{ fontWeight: 600 }}>
-                  R$ {selectedAppointment.price}
+                  R$ {selectedAppointment.totalPrice || selectedAppointment.price || 0}
                 </Typography>
               </Grid>
               
@@ -559,7 +620,7 @@ const WorkshopDashboard = () => {
                   Bike
                 </Typography>
                 <Typography variant="body1">
-                  {selectedAppointment.bikeModel}
+                  {selectedAppointment.bikeInfo?.model || selectedAppointment.bikeModel || 'N/A'}
                 </Typography>
               </Grid>
               
