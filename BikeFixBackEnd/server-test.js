@@ -10,6 +10,9 @@ const connectDB = require('./config/database');
 
 // Importar rotas
 const authRoutes = require('./routes/auth');
+const workshopRoutes = require('./routes/workshops');
+const appointmentRoutes = require('./routes/appointments');
+const reviewRoutes = require('./routes/reviews');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -17,10 +20,10 @@ const PORT = process.env.PORT || 5000;
 // Configurações de segurança
 app.use(helmet());
 
-// Rate limiting
+// Rate limiting (aumentado para desenvolvimento)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // máximo 100 requests por IP
+  max: 1000, // máximo 1000 requests por IP (aumentado para desenvolvimento)
   message: {
     error: 'Muitas tentativas. Tente novamente em 15 minutos.'
   }
@@ -40,8 +43,11 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Logging
 app.use(morgan('combined'));
 
-// Rotas da API
+// Rotas
 app.use('/api/auth', authRoutes);
+app.use('/api/workshops', workshopRoutes);
+app.use('/api/appointments', appointmentRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 // Rota básica
 app.get('/', (req, res) => {

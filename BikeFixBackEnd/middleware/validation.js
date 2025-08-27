@@ -46,8 +46,8 @@ const validateRegister = [
   body('phone')
     .optional()
     .trim()
-    .isLength({ min: 10, max: 15 })
-    .withMessage('Telefone deve ter entre 10 e 15 caracteres'),
+    .isLength({ min: 10, max: 20 })
+    .withMessage('Telefone deve ter entre 10 e 20 caracteres'),
   
   handleValidationErrors
 ];
