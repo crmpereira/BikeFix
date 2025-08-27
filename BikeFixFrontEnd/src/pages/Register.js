@@ -1,0 +1,642 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Container,
+  Paper,
+  TextField,
+  Button,
+  Typography,
+  Link,
+  FormControl,
+  FormLabel,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  CircularProgress,
+  Divider,
+  IconButton,
+  InputAdornment,
+  Stepper,
+  Step,
+  StepLabel,
+} from '@mui/material';
+import {
+  Visibility,
+  VisibilityOff,
+  Person,
+  Email,
+  Lock,
+  Phone,
+  Google,
+} from '@mui/icons-material';
+import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'react-toastify';
+
+const Register = () => {
+  const { register, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  
+  const [activeStep, setActiveStep] = useState(0);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    phone: '',
+    userType: searchParams.get('type') || 'cyclist',
+    // Campos específicos para ciclistas
+    bikeType: '',
+    experience: '',
+    // Campos específicos para oficinas
+    workshopName: '',
+    cnpj: '',
+    address: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    description: '',
+    services: '',
+  });
+  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const steps = ['Informações Básicas', 'Dados Específicos', 'Confirmação'];
+
+  // Redirecionar se já estiver autenticado
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+    // Limpar erro do campo quando usuário começar a digitar
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: '',
+      }));
+    }
+  };
+
+  const validateStep = (step) => {
+    const newErrors = {};
+
+    if (step === 0) {
+      // Validação do primeiro passo
+      if (!formData.name) {
+        newErrors.name = 'Nome é obrigatório';
+      }
+
+      if (!formData.email) {
+        newErrors.email = 'Email é obrigatório';
+      } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+        newErrors.email = 'Email inválido';
+      }
+
+      if (!formData.password) {
+        newErrors.password = 'Senha é obrigatória';
+      } else if (formData.password.length < 6) {
+        newErrors.password = 'Senha deve ter pelo menos 6 caracteres';
+      }
+
+      if (!formData.confirmPassword) {
+        newErrors.confirmPassword = 'Confirmação de senha é obrigatória';
+      } else if (formData.password !== formData.confirmPassword) {
+        newErrors.confirmPassword = 'Senhas não coincidem';
+      }
+
+      // Telefone é opcional
+      if (formData.phone && formData.phone.length < 10) {
+        newErrors.phone = 'Telefone deve ter pelo menos 10 dígitos';
+      }
+    } else if (step === 1) {
+      // Validação do segundo passo
+      if (formData.userType === 'workshop') {
+        if (!formData.workshopName) {
+          newErrors.workshopName = 'Nome da oficina é obrigatório';
+        }
+        if (!formData.cnpj) {
+          newErrors.cnpj = 'CNPJ é obrigatório';
+        }
+        if (!formData.address) {
+          newErrors.address = 'Endereço é obrigatório';
+        }
+        if (!formData.city) {
+          newErrors.city = 'Cidade é obrigatória';
+        }
+        if (!formData.state) {
+          newErrors.state = 'Estado é obrigatório';
+        }
+        if (!formData.zipCode) {
+          newErrors.zipCode = 'CEP é obrigatório';
+        }
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleNext = () => {
+    if (validateStep(activeStep)) {
+      setActiveStep(prev => prev + 1);
+    }
+  };
+
+  const handleBack = () => {
+    setActiveStep(prev => prev - 1);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    console.log('Register - handleSubmit chamado, activeStep:', activeStep);
+    console.log('Register - formData atual:', formData);
+    
+    if (!validateStep(activeStep)) {
+      console.log('Register - Validação falhou para step:', activeStep);
+      return;
+    }
+    
+    console.log('Register - Validação passou, iniciando registro...');
+
+    setLoading(true);
+    
+    try {
+      const result = await register(formData);
+      
+      if (result.success) {
+        toast.success('Cadastro realizado com sucesso! Verifique seu email.');
+        navigate('/login');
+      } else {
+        toast.error(result.error);
+      }
+    } catch (error) {
+      toast.error('Erro inesperado. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleRegister = () => {
+    // TODO: Implementar registro com Google
+    toast.info('Registro com Google será implementado em breve');
+  };
+
+  const renderStepContent = (step) => {
+    switch (step) {
+      case 0:
+        return (
+          <>
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              id="name"
+              label="Nome Completo"
+              name="name"
+              autoComplete="name"
+              autoFocus
+              value={formData.name}
+              onChange={handleChange}
+              error={!!errors.name}
+              helperText={errors.name}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Person color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              id="email"
+              label="Email"
+              name="email"
+              autoComplete="email"
+              value={formData.email}
+              onChange={handleChange}
+              error={!!errors.email}
+              helperText={errors.email}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Email color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              name="password"
+              label="Senha"
+              type={showPassword ? 'text' : 'password'}
+              id="password"
+              autoComplete="new-password"
+              value={formData.password}
+              onChange={handleChange}
+              error={!!errors.password}
+              helperText={errors.password}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Lock color="action" />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+            
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              name="confirmPassword"
+              label="Confirmar Senha"
+              type={showConfirmPassword ? 'text' : 'password'}
+              id="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              error={!!errors.confirmPassword}
+              helperText={errors.confirmPassword}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Lock color="action" />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle confirm password visibility"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      edge="end"
+                    >
+                      {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+            
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              id="phone"
+              label="Telefone"
+              name="phone"
+              autoComplete="tel"
+              value={formData.phone}
+              onChange={handleChange}
+              error={!!errors.phone}
+              helperText={errors.phone}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Phone color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            
+            <FormControl component="fieldset" sx={{ mt: 2, width: '100%' }}>
+              <FormLabel component="legend">Tipo de Usuário</FormLabel>
+              <RadioGroup
+                row
+                aria-label="userType"
+                name="userType"
+                value={formData.userType}
+                onChange={handleChange}
+              >
+                <FormControlLabel value="cyclist" control={<Radio />} label="Ciclista" />
+                <FormControlLabel value="workshop" control={<Radio />} label="Oficina" />
+              </RadioGroup>
+            </FormControl>
+          </>
+        );
+      
+      case 1:
+        if (formData.userType === 'cyclist') {
+          return (
+            <>
+              <TextField
+                margin="normal"
+                fullWidth
+                id="bikeType"
+                label="Tipo de Bike"
+                name="bikeType"
+                value={formData.bikeType}
+                onChange={handleChange}
+                helperText="Ex: Mountain Bike, Speed, Urbana, etc."
+              />
+              
+              <FormControl component="fieldset" sx={{ mt: 2, width: '100%' }}>
+                <FormLabel component="legend">Nível de Experiência</FormLabel>
+                <RadioGroup
+                  aria-label="experience"
+                  name="experience"
+                  value={formData.experience}
+                  onChange={handleChange}
+                >
+                  <FormControlLabel value="beginner" control={<Radio />} label="Iniciante" />
+                  <FormControlLabel value="intermediate" control={<Radio />} label="Intermediário" />
+                  <FormControlLabel value="advanced" control={<Radio />} label="Avançado" />
+                  <FormControlLabel value="professional" control={<Radio />} label="Profissional" />
+                </RadioGroup>
+              </FormControl>
+            </>
+          );
+        } else {
+          return (
+            <>
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                id="workshopName"
+                label="Nome da Oficina"
+                name="workshopName"
+                value={formData.workshopName}
+                onChange={handleChange}
+                error={!!errors.workshopName}
+                helperText={errors.workshopName}
+              />
+              
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                id="cnpj"
+                label="CNPJ"
+                name="cnpj"
+                value={formData.cnpj}
+                onChange={handleChange}
+                error={!!errors.cnpj}
+                helperText={errors.cnpj}
+              />
+              
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                id="address"
+                label="Endereço"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                error={!!errors.address}
+                helperText={errors.address}
+              />
+              
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <TextField
+                  margin="normal"
+                  required
+                  fullWidth
+                  id="city"
+                  label="Cidade"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  error={!!errors.city}
+                  helperText={errors.city}
+                />
+                
+                <TextField
+                  margin="normal"
+                  required
+                  fullWidth
+                  id="state"
+                  label="Estado"
+                  name="state"
+                  value={formData.state}
+                  onChange={handleChange}
+                  error={!!errors.state}
+                  helperText={errors.state}
+                />
+              </Box>
+              
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                id="zipCode"
+                label="CEP"
+                name="zipCode"
+                value={formData.zipCode}
+                onChange={handleChange}
+                error={!!errors.zipCode}
+                helperText={errors.zipCode}
+              />
+              
+              <TextField
+                margin="normal"
+                fullWidth
+                id="description"
+                label="Descrição da Oficina"
+                name="description"
+                multiline
+                rows={3}
+                value={formData.description}
+                onChange={handleChange}
+                helperText="Descreva os serviços e especialidades da sua oficina"
+              />
+              
+              <TextField
+                margin="normal"
+                fullWidth
+                id="services"
+                label="Serviços Oferecidos"
+                name="services"
+                value={formData.services}
+                onChange={handleChange}
+                helperText="Ex: Manutenção preventiva, Reparo de freios, Troca de pneus, etc."
+              />
+            </>
+          );
+        }
+      
+      case 2:
+        return (
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="h6" gutterBottom>
+              Confirme seus dados
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Revise as informações antes de finalizar o cadastro
+            </Typography>
+            
+            <Box sx={{ textAlign: 'left', mb: 3 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                <strong>Nome:</strong> {formData.name}
+              </Typography>
+              <Typography variant="subtitle2" gutterBottom>
+                <strong>Email:</strong> {formData.email}
+              </Typography>
+              <Typography variant="subtitle2" gutterBottom>
+                <strong>Telefone:</strong> {formData.phone}
+              </Typography>
+              <Typography variant="subtitle2" gutterBottom>
+                <strong>Tipo:</strong> {formData.userType === 'cyclist' ? 'Ciclista' : 'Oficina'}
+              </Typography>
+              
+              {formData.userType === 'workshop' && (
+                <>
+                  <Typography variant="subtitle2" gutterBottom>
+                    <strong>Nome da Oficina:</strong> {formData.workshopName}
+                  </Typography>
+                  <Typography variant="subtitle2" gutterBottom>
+                    <strong>CNPJ:</strong> {formData.cnpj}
+                  </Typography>
+                  <Typography variant="subtitle2" gutterBottom>
+                    <strong>Endereço:</strong> {formData.address}, {formData.city} - {formData.state}
+                  </Typography>
+                </>
+              )}
+            </Box>
+          </Box>
+        );
+      
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Container component="main" maxWidth="md">
+      <Box
+        sx={{
+          marginTop: 4,
+          marginBottom: 8,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}
+      >
+        <Paper
+          elevation={3}
+          sx={{
+            padding: 4,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            width: '100%',
+          }}
+        >
+          <Typography component="h1" variant="h4" sx={{ mb: 3, fontWeight: 600 }}>
+            Criar Conta
+          </Typography>
+          
+          <Stepper activeStep={activeStep} sx={{ width: '100%', mb: 4 }}>
+            {steps.map((label) => (
+              <Step key={label}>
+                <StepLabel>{label}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
+
+          <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
+            {renderStepContent(activeStep)}
+            
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
+              <Button
+                onClick={handleBack}
+                disabled={activeStep === 0}
+                sx={{ mr: 1 }}
+              >
+                Voltar
+              </Button>
+              
+              {activeStep === steps.length - 1 ? (
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={loading}
+                  sx={{ py: 1.5, px: 4 }}
+                >
+                  {loading ? (
+                    <CircularProgress size={24} color="inherit" />
+                  ) : (
+                    'Finalizar Cadastro'
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  variant="contained"
+                  onClick={handleNext}
+                  sx={{ py: 1.5, px: 4 }}
+                >
+                  Próximo
+                </Button>
+              )}
+            </Box>
+          </Box>
+          
+          {activeStep === 0 && (
+            <>
+              <Divider sx={{ my: 3, width: '100%' }}>
+                <Typography variant="body2" color="text.secondary">
+                  ou
+                </Typography>
+              </Divider>
+              
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<Google />}
+                onClick={handleGoogleRegister}
+                sx={{ mb: 2, py: 1.5 }}
+              >
+                Continuar com Google
+              </Button>
+            </>
+          )}
+          
+          <Box sx={{ textAlign: 'center', mt: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              Já tem uma conta?{' '}
+              <Link
+                component={RouterLink}
+                to="/login"
+                variant="body2"
+                underline="hover"
+                sx={{ fontWeight: 600 }}
+              >
+                Faça login
+              </Link>
+            </Typography>
+          </Box>
+        </Paper>
+      </Box>
+    </Container>
+  );
+};
+
+export default Register;
