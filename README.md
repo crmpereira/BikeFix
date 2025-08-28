@@ -26,6 +26,7 @@ BikeFix/
 - **JWT** para autenticação
 - **bcryptjs** para hash de senhas
 - **Nodemailer** para envio de emails
+- **Swagger** para documentação da API
 
 ### Frontend
 - **React.js**
@@ -67,16 +68,32 @@ EMAIL_USER=seu_email
 EMAIL_PASS=sua_senha_email
 ```
 
+## 📚 Documentação da API
+
+A API possui documentação completa e interativa usando **Swagger UI**:
+- **URL**: http://localhost:5000/api-docs
+- **Autenticação**: Suporte a Bearer Token JWT
+- **Testes**: Interface para testar todos os endpoints
+
 ## 🌐 Endpoints da API
 
 ### Autenticação
-- `POST /api/auth/register` - Registro de usuários
-- `POST /api/auth/login` - Login
-- `POST /api/auth/verify-email` - Verificação de email
+- `POST /api/auth/register` - Registro de usuários e oficinas
+- `POST /api/auth/login` - Login de usuários
 
 ### Usuários
-- `GET /api/users/profile` - Perfil do usuário
-- `PUT /api/users/profile` - Atualizar perfil
+- `GET /api/users/profile` - Obter perfil do usuário
+- `PUT /api/users/profile` - Atualizar perfil do usuário
+- `GET /api/users/bikes` - Listar bicicletas do usuário
+- `POST /api/users/bikes` - Adicionar nova bicicleta
+- `PUT /api/users/bikes/:id` - Atualizar bicicleta
+- `DELETE /api/users/bikes/:id` - Excluir bicicleta
+
+### Oficinas
+- `GET /api/workshops` - Listar oficinas com filtros
+- `GET /api/workshops/nearby` - Buscar oficinas próximas
+- `GET /api/workshops/:id` - Obter oficina por ID
+- `GET /api/workshops/:id/services` - Listar serviços da oficina
 
 ## 👥 Tipos de Usuário
 
@@ -99,6 +116,7 @@ EMAIL_PASS=sua_senha_email
 
 - **Frontend**: http://localhost:3000
 - **Backend**: http://localhost:5000
+- **Documentação API**: http://localhost:5000/api-docs
 
 ## 🤝 Contribuição
 
