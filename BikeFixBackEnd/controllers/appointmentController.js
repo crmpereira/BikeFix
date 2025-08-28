@@ -12,6 +12,7 @@ const createAppointment = async (req, res) => {
       serviceType,
       requestedServices,
       bikeInfo,
+      bikeIds,
       description,
       urgency
     } = req.body;
@@ -63,6 +64,7 @@ const createAppointment = async (req, res) => {
       appointmentTime,
       serviceType,
       requestedServices: requestedServices || [],
+      bikeIds: bikeIds || [],
       bikeInfo: bikeInfo || {},
       description: description || '',
       urgency: urgency || 'normal',
@@ -97,7 +99,9 @@ const createAppointment = async (req, res) => {
 // Buscar agendamentos do usuário
 const getUserAppointments = async (req, res) => {
   try {
+    console.log('getUserAppointments - Iniciando busca para usuário:', req.user.id);
     const { status, page = 1, limit = 10 } = req.query;
+    console.log('getUserAppointments - Parâmetros:', { status, page, limit });
     const skip = (page - 1) * limit;
 
     // Construir filtros
@@ -105,18 +109,37 @@ const getUserAppointments = async (req, res) => {
     if (status) {
       filters.status = status;
     }
+    console.log('getUserAppointments - Filtros:', filters);
 
     // Buscar agendamentos
+    console.log('getUserAppointments - Executando query...');
+    
+    // Primeiro, vamos verificar se existem agendamentos sem populate
+    const appointmentsCount = await Appointment.countDocuments(filters);
+    console.log('getUserAppointments - Total de agendamentos sem populate:', appointmentsCount);
+    
     const appointments = await Appointment.find(filters)
-      .populate('workshop', 'businessName address phone rating')
+      .populate('workshop', 'name email workshopData')
       .sort({ appointmentDate: -1 })
       .skip(skip)
       .limit(parseInt(limit));
+    console.log('getUserAppointments - Agendamentos encontrados após populate:', appointments.length);
+    
+    // Log detalhado dos primeiros agendamentos
+    if (appointments.length > 0) {
+      console.log('getUserAppointments - Primeiro agendamento:', {
+        id: appointments[0]._id,
+        cyclist: appointments[0].cyclist,
+        workshop: appointments[0].workshop,
+        appointmentDate: appointments[0].appointmentDate
+      });
+    }
 
     // Contar total
     const total = await Appointment.countDocuments(filters);
+    console.log('getUserAppointments - Total de agendamentos:', total);
 
-    res.json({
+    const response = {
       success: true,
       data: appointments,
       pagination: {
@@ -124,13 +147,33 @@ const getUserAppointments = async (req, res) => {
         pages: Math.ceil(total / limit),
         total
       }
+    };
+    
+    console.log('getUserAppointments - Resposta final:', {
+      success: response.success,
+      appointmentsCount: response.data.length,
+      totalItems: response.pagination.total
     });
+    
+    // Forçar cache refresh
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    
+    res.json(response);
 
   } catch (error) {
     console.error('Erro ao buscar agendamentos:', error);
+    console.error('Stack trace:', error.stack);
+    console.error('Error details:', {
+      message: error.message,
+      name: error.name,
+      code: error.code
+    });
     res.status(500).json({
       success: false,
-      message: 'Erro interno do servidor'
+      message: 'Erro interno do servidor',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -207,7 +250,7 @@ const getAppointmentById = async (req, res) => {
 
     const appointment = await Appointment.findById(id)
       .populate('cyclist', 'name email phone')
-      .populate('workshop', 'businessName address phone rating');
+      .populate('workshop', 'name email workshopData');
 
     if (!appointment) {
       return res.status(404).json({

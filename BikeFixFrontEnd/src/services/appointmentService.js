@@ -41,6 +41,26 @@ api.interceptors.response.use(
 );
 
 const appointmentService = {
+  // Testar autenticação
+  testAuth: async () => {
+    try {
+      console.log('appointmentService - Testando autenticação...');
+      const response = await api.get('/appointments/test-auth');
+      console.log('appointmentService - Teste de autenticação:', response);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error('appointmentService - Erro no teste de autenticação:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Erro no teste de autenticação',
+        error: error.response?.data
+      };
+    }
+  },
+
   // Criar novo agendamento
   createAppointment: async (appointmentData) => {
     try {
@@ -86,29 +106,46 @@ const appointmentService = {
         queryParams.append('limit', filters.limit);
       }
       
+      // Adicionar timestamp para evitar cache
+      queryParams.append('_t', Date.now().toString());
+      
       // Adicionar outros filtros
       Object.keys(filters).forEach(key => {
         if (filters[key] && !['status', 'dateFrom', 'dateTo', 'search', 'page', 'limit'].includes(key)) {
           queryParams.append(key, filters[key]);
         }
       });
-
-      const response = await api.get(`/appointments?${queryParams.toString()}`);
+      
+      const response = await api.get(`/appointments?${queryParams.toString()}`, {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       
       // Formatar agendamentos para o frontend
-      const formattedAppointments = response.data.data.map(appointment => ({
-        ...appointment,
-        id: appointment._id // Garantir que o campo id esteja presente
-      }));
+      const appointments = response.data.data || response.data || [];
       
-      return {
+      const formattedAppointments = appointments.map(appointment => {
+        const formatted = appointmentService.formatAppointmentForFrontend(appointment);
+        return {
+          ...formatted,
+          id: appointment._id // Garantir que o campo id esteja presente
+        };
+      });
+      
+      const result = {
         success: true,
         data: formattedAppointments,
         total: response.data.total || response.data.pagination?.total || formattedAppointments.length,
         pagination: response.data.pagination
       };
+      
+      return result;
+      
     } catch (error) {
       console.error('Erro ao buscar agendamentos:', error);
+      
       const message = error.response?.data?.message || 'Erro ao buscar agendamentos';
       return {
         success: false,
@@ -238,10 +275,10 @@ const appointmentService = {
       id: appointment._id,
       workshop: {
         id: appointment.workshop._id,
-        name: appointment.workshop.businessName || appointment.workshop.name,
-        address: appointment.workshop.address,
-        phone: appointment.workshop.phone,
-        rating: appointment.workshop.rating || 0
+        name: appointment.workshop.workshopData?.businessName || appointment.workshop.name,
+        address: appointment.workshop.workshopData?.address || {},
+        phone: appointment.workshop.workshopData?.phone || '',
+        rating: appointment.workshop.workshopData?.rating || 0
       },
       cyclist: appointment.cyclist ? {
         id: appointment.cyclist._id,

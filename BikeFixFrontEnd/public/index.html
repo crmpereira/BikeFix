@@ -20,6 +20,21 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <script>
+      // Função para carregar Google Maps API dinamicamente
+      function loadGoogleMapsAPI() {
+        // A chave da API será injetada pelo React durante o build
+        // Por enquanto, não carregamos o Google Maps para evitar erros
+        console.info('ℹ️ Google Maps será carregado pelo componente React quando uma chave válida estiver configurada.');
+      }
+      
+      // Carregar API quando a página estiver pronta
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadGoogleMapsAPI);
+      } else {
+        loadGoogleMapsAPI();
+      }
+    </script>
     <title>BikeFix - Conectando Ciclistas e Oficinas</title>
   </head>
   <body>

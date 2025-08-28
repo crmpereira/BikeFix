@@ -71,14 +71,11 @@ const History = () => {
     totalSpent: 0
   });
 
-  useEffect(() => {
-    loadAppointments();
-    loadStats();
-  }, [page, rowsPerPage, filters]);
-
-  const loadAppointments = async () => {
+  // Separar useEffect para loadAppointments e loadStats para evitar dependências circulares
+  const loadAppointmentsCallback = React.useCallback(async () => {
     try {
       setLoading(true);
+      
       const response = await appointmentService.getUserAppointments({
         page: page + 1,
         limit: rowsPerPage,
@@ -88,16 +85,30 @@ const History = () => {
       if (response.success) {
         setAppointments(response.data || []);
         setTotalCount(response.total || 0);
+      } else {
+        if (response.message && response.message.includes('Token')) {
+          toast.error('Sessão expirada. Faça login novamente.');
+        } else {
+          toast.error(response.message || 'Erro ao carregar histórico de agendamentos');
+        }
+        setAppointments([]);
+        setTotalCount(0);
       }
     } catch (error) {
-      console.error('Erro ao carregar histórico:', error);
-      toast.error('Erro ao carregar histórico de agendamentos');
+      console.error('Erro ao carregar histórico de agendamentos:', error);
+      if (error.response?.status === 401) {
+        toast.error('Sessão expirada. Faça login novamente.');
+      } else {
+        toast.error('Erro ao carregar histórico de agendamentos');
+      }
+      setAppointments([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, rowsPerPage, filters]);
 
-  const loadStats = async () => {
+  const loadStatsCallback = React.useCallback(async () => {
     try {
       const response = await appointmentService.getUserAppointments();
       if (response.success) {
@@ -116,7 +127,16 @@ const History = () => {
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error);
     }
-  };
+  }, []);
+
+  React.useEffect(() => {
+    if (user) {
+      loadAppointmentsCallback();
+      loadStatsCallback();
+    }
+  }, [user, loadAppointmentsCallback, loadStatsCallback]);
+
+
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -183,7 +203,16 @@ const History = () => {
   };
 
   const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('pt-BR');
+    if (!date) return 'Data não informada';
+    
+    const dateObj = new Date(date);
+    
+    // Verificar se a data é válida
+    if (isNaN(dateObj.getTime())) {
+      return 'Data inválida';
+    }
+    
+    return dateObj.toLocaleDateString('pt-BR');
   };
 
   return (

@@ -16,8 +16,10 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = Cookies.get('token');
+    console.log('authService - Token encontrado:', token ? 'Sim' : 'Não');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('authService - Header Authorization definido para:', config.url);
     }
     return config;
   },

@@ -23,7 +23,13 @@ const appointmentSchema = new mongoose.Schema({
     required: [true, 'Horário do agendamento é obrigatório']
   },
   
-  // Dados da bicicleta
+  // IDs das bikes selecionadas (referência às bikes do usuário)
+  bikeIds: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User.cyclistData.bikes'
+  }],
+  
+  // Dados da bicicleta (mantido para compatibilidade)
   bikeInfo: {
     brand: String,
     model: String,

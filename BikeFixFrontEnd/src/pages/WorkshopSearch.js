@@ -31,6 +31,8 @@ import {
   Divider,
   CircularProgress,
   Alert,
+  ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material';
 import {
   Search,
@@ -43,9 +45,12 @@ import {
   DirectionsBike,
   Verified,
   AccessTime,
+  ViewList,
+  Map as MapIcon,
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import workshopService from '../services/workshopService';
+import WorkshopMap from '../components/WorkshopMap';
 import { toast } from 'react-toastify';
 
 const WorkshopSearch = () => {
@@ -64,6 +69,10 @@ const WorkshopSearch = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [viewMode, setViewMode] = useState('list'); // 'list' ou 'map'
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationError, setLocationError] = useState(null);
+  const [searchingNearby, setSearchingNearby] = useState(false);
   const [availableServices] = useState([
     'Manutenção Preventiva',
     'Reparo de Freios',
@@ -77,6 +86,7 @@ const WorkshopSearch = () => {
   // Carregar oficinas ao montar o componente
   useEffect(() => {
     loadWorkshops();
+    getUserLocation();
   }, []);
 
   const loadWorkshops = useCallback(async (searchFilters = {}) => {
@@ -197,6 +207,82 @@ const WorkshopSearch = () => {
       }
     });
 
+  // Obter localização do usuário
+  const getUserLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError('Geolocalização não é suportada pelo seu navegador.');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
+        setLocationError(null);
+      },
+      (error) => {
+        let errorMessage = 'Erro ao obter localização.';
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Permissão de localização negada.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Localização indisponível.';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Tempo limite para obter localização.';
+            break;
+          default:
+            errorMessage = 'Erro desconhecido ao obter localização.';
+            break;
+        }
+        setLocationError(errorMessage);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000 // 5 minutos
+      }
+    );
+  };
+
+  // Buscar oficinas próximas
+  const searchNearbyWorkshops = async () => {
+    if (!userLocation) {
+      getUserLocation();
+      return;
+    }
+
+    setSearchingNearby(true);
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await workshopService.getNearbyWorkshops(
+          userLocation.lat,
+          userLocation.lng,
+          filters.maxDistance || 10
+        );
+
+      if (response.success) {
+        const formattedWorkshops = response.data.map(workshop => 
+          workshopService.formatWorkshopForFrontend(workshop)
+        );
+        setWorkshops(formattedWorkshops);
+      } else {
+        setError(response.message || 'Erro ao buscar oficinas próximas');
+      }
+    } catch (error) {
+      console.error('Erro ao buscar oficinas próximas:', error);
+      setError('Erro ao buscar oficinas próximas. Tente novamente.');
+    } finally {
+      setLoading(false);
+      setSearchingNearby(false);
+    }
+  };
+
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600 }}>
@@ -293,8 +379,20 @@ const WorkshopSearch = () => {
                   loadWorkshops({});
                 }}
                 disabled={loading}
+                sx={{ mb: 1 }}
               >
                 Limpar
+              </Button>
+              <Button
+                fullWidth
+                variant="contained"
+                color="secondary"
+                size="small"
+                onClick={searchNearbyWorkshops}
+                disabled={searchingNearby || loading}
+                startIcon={<LocationOn />}
+              >
+                {searchingNearby ? 'Buscando...' : 'Próximas'}
               </Button>
             </Box>
           </Grid>
@@ -408,16 +506,37 @@ const WorkshopSearch = () => {
       )}
       
       {!initialLoad && (
-        <Box sx={{ mb: 3 }}>
+        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             {loading ? 'Buscando...' : `${filteredWorkshops.length} oficinas encontradas`}
           </Typography>
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            onChange={(event, newViewMode) => {
+              if (newViewMode !== null) {
+                setViewMode(newViewMode);
+              }
+            }}
+            aria-label="modo de visualização"
+            size="small"
+          >
+            <ToggleButton value="list" aria-label="visualização em lista">
+              <ViewList sx={{ mr: 1 }} />
+              Lista
+            </ToggleButton>
+            <ToggleButton value="map" aria-label="visualização em mapa">
+              <MapIcon sx={{ mr: 1 }} />
+              Mapa
+            </ToggleButton>
+          </ToggleButtonGroup>
         </Box>
       )}
 
-      <Grid container spacing={3}>
-        {filteredWorkshops.map((workshop) => (
-          <Grid item xs={12} sm={6} md={6} lg={4} key={workshop.id}>
+      {viewMode === 'list' ? (
+        <Grid container spacing={3}>
+          {filteredWorkshops.map((workshop) => (
+            <Grid item xs={12} sm={6} md={6} lg={4} key={workshop.id}>
             <Card sx={{ 
               height: '100%', 
               display: 'flex', 
@@ -473,9 +592,14 @@ const WorkshopSearch = () => {
 
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                   <LocationOn sx={{ fontSize: 16, color: 'text.secondary', mr: 1 }} />
-                  <Typography variant="body2" color="text.secondary">
-                    {workshop.address}
-                  </Typography>
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      {workshop.address}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                      {workshop.city}, {workshop.state} - CEP: {workshop.zipCode}
+                    </Typography>
+                  </Box>
                 </Box>
 
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -533,10 +657,21 @@ const WorkshopSearch = () => {
                   Ver Detalhes
                 </Button>
               </CardActions>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      ) : (
+        <Box sx={{ height: '600px', width: '100%', mb: 3 }}>
+          <WorkshopMap 
+            workshops={filteredWorkshops}
+            userLocation={userLocation}
+            onWorkshopSelect={(workshop) => {
+              console.log('Oficina selecionada:', workshop);
+            }}
+          />
+        </Box>
+      )}
 
       {filteredWorkshops.length === 0 && (
         <Paper sx={{ p: 6, textAlign: 'center' }}>

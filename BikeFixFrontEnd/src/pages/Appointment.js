@@ -42,6 +42,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import workshopService from '../services/workshopService';
 import appointmentService from '../services/appointmentService';
+import bikeService from '../services/bikeService';
 
 const Appointment = () => {
   const { user } = useAuth();
@@ -49,6 +50,9 @@ const Appointment = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [selectedWorkshop, setSelectedWorkshop] = useState(null);
   const [selectedServices, setSelectedServices] = useState([]);
+  const [selectedBikes, setSelectedBikes] = useState([]);
+  const [userBikes, setUserBikes] = useState([]);
+  const [loadingBikes, setLoadingBikes] = useState(false);
   const [appointmentData, setAppointmentData] = useState({
     date: '',
     time: '',
@@ -85,6 +89,20 @@ const Appointment = () => {
     }
   };
 
+  // Carregar bikes do usuário
+  const loadUserBikes = async () => {
+    try {
+      setLoadingBikes(true);
+      const bikes = await bikeService.getUserBikes();
+      setUserBikes(bikes || []);
+    } catch (error) {
+      console.error('Erro ao carregar bikes:', error);
+      toast.error('Erro ao carregar suas bikes');
+    } finally {
+      setLoadingBikes(false);
+    }
+  };
+
   const timeSlots = [
     '08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
     '11:00', '11:30', '14:00', '14:30', '15:00', '15:30',
@@ -97,6 +115,7 @@ const Appointment = () => {
       navigate('/login');
     } else {
       loadWorkshops();
+      loadUserBikes();
     }
   }, [user, navigate]);
 
@@ -150,6 +169,7 @@ const Appointment = () => {
           price: service.basePrice,
           duration: service.estimatedTime
         })),
+        bikeIds: selectedBikes.map(bike => bike._id),
         bikeInfo: {
           model: appointmentData.bikeModel,
           year: appointmentData.bikeYear ? parseInt(appointmentData.bikeYear) : undefined
@@ -503,48 +523,109 @@ const Appointment = () => {
           <Grid container spacing={{ xs: 2, md: 3 }}>
             <Grid item xs={12}>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                Informações da sua bike
+                Selecione suas bikes
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Nos conte mais sobre sua bike para um atendimento personalizado
+                Escolha uma ou mais bikes cadastradas para este agendamento
               </Typography>
             </Grid>
             
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth size={window.innerWidth < 768 ? 'small' : 'medium'}>
-                <InputLabel>Tipo de Bike</InputLabel>
-                <Select
-                  value={appointmentData.bikeModel}
-                  label="Tipo de Bike"
-                  onChange={(e) => setAppointmentData(prev => ({ ...prev, bikeModel: e.target.value }))}
-                >
-                  <MenuItem value="">Selecione o tipo</MenuItem>
-                  <MenuItem value="Mountain Bike">Mountain Bike</MenuItem>
-                  <MenuItem value="Speed/Road Bike">Speed/Road Bike</MenuItem>
-                  <MenuItem value="Híbrida">Híbrida</MenuItem>
-                  <MenuItem value="BMX">BMX</MenuItem>
-                  <MenuItem value="Urbana/City Bike">Urbana/City Bike</MenuItem>
-                  <MenuItem value="Elétrica">Elétrica</MenuItem>
-                  <MenuItem value="Dobrável">Dobrável</MenuItem>
-                  <MenuItem value="Fixa/Fixed Gear">Fixa/Fixed Gear</MenuItem>
-                  <MenuItem value="Cruiser">Cruiser</MenuItem>
-                  <MenuItem value="Gravel">Gravel</MenuItem>
-                  <MenuItem value="Infantil">Infantil</MenuItem>
-                  <MenuItem value="Outro">Outro</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Ano da Bike"
-                value={appointmentData.bikeYear}
-                onChange={(e) => setAppointmentData(prev => ({ ...prev, bikeYear: e.target.value }))}
-                placeholder="Ex: 2020"
-                size={window.innerWidth < 768 ? 'small' : 'medium'}
-              />
-            </Grid>
+            {loadingBikes ? (
+              <Grid item xs={12}>
+                <Typography>Carregando suas bikes...</Typography>
+              </Grid>
+            ) : userBikes.length === 0 ? (
+              <Grid item xs={12}>
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  Você ainda não tem bikes cadastradas. 
+                  <Button 
+                    variant="text" 
+                    onClick={() => navigate('/my-bike')}
+                    sx={{ ml: 1 }}
+                  >
+                    Cadastrar bike
+                  </Button>
+                </Alert>
+              </Grid>
+            ) : (
+              <Grid item xs={12}>
+                <Typography variant="body2" sx={{ mb: 2, fontWeight: 500 }}>
+                  Suas bikes cadastradas:
+                </Typography>
+                <Grid container spacing={2}>
+                  {userBikes.map((bike) => {
+                    const isSelected = selectedBikes.some(selectedBike => selectedBike._id === bike._id);
+                    return (
+                      <Grid item xs={12} sm={6} md={4} key={bike._id}>
+                        <Card 
+                          sx={{ 
+                            cursor: 'pointer',
+                            border: isSelected ? 2 : 1,
+                            borderColor: isSelected ? 'primary.main' : 'divider',
+                            '&:hover': {
+                              borderColor: 'primary.main',
+                              boxShadow: 2
+                            }
+                          }}
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedBikes(prev => prev.filter(selectedBike => selectedBike._id !== bike._id));
+                            } else {
+                              setSelectedBikes(prev => [...prev, bike]);
+                            }
+                          }}
+                        >
+                          <CardContent sx={{ p: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                              <DirectionsBike sx={{ mr: 1, color: 'primary.main' }} />
+                              {isSelected && <CheckCircle sx={{ ml: 'auto', color: 'primary.main' }} />}
+                            </Box>
+                            <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
+                              {bike.brand} {bike.model}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              Ano: {bike.year || 'Não informado'}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              Tipo: {bike.type === 'road' ? 'Speed/Estrada' : 
+                                     bike.type === 'mountain' ? 'Mountain Bike' :
+                                     bike.type === 'hybrid' ? 'Híbrida' :
+                                     bike.type === 'electric' ? 'Elétrica' :
+                                     bike.type === 'bmx' ? 'BMX' : 'Outro'}
+                            </Typography>
+                            {bike.totalKm > 0 && (
+                              <Typography variant="body2" color="text.secondary">
+                                KM: {bike.totalKm}
+                              </Typography>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    );
+                  })}
+                </Grid>
+                {selectedBikes.length > 0 && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
+                      Bikes selecionadas: {selectedBikes.length}
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {selectedBikes.map((bike) => (
+                        <Chip
+                          key={bike._id}
+                          label={`${bike.brand} ${bike.model}`}
+                          onDelete={() => {
+                            setSelectedBikes(prev => prev.filter(selectedBike => selectedBike._id !== bike._id));
+                          }}
+                          color="primary"
+                          variant="outlined"
+                        />
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+              </Grid>
+            )}
             
             <Grid item xs={12}>
               <TextField
@@ -642,11 +723,22 @@ const Appointment = () => {
                 />
               </ListItem>
               
-              {appointmentData.bikeModel && (
+              {selectedBikes.length > 0 && (
                 <ListItem>
+                  <ListItemIcon>
+                    <DirectionsBike />
+                  </ListItemIcon>
                   <ListItemText
-                    primary="Bike"
-                    secondary={`${appointmentData.bikeModel} ${appointmentData.bikeYear ? `(${appointmentData.bikeYear})` : ''}`}
+                    primary={`Bike${selectedBikes.length > 1 ? 's' : ''} Selecionada${selectedBikes.length > 1 ? 's' : ''}`}
+                    secondary={
+                      <Box>
+                        {selectedBikes.map((bike, index) => (
+                          <Typography key={bike._id} variant="body2" component="div">
+                            {bike.brand} {bike.model} ({bike.year || 'Ano não informado'})
+                          </Typography>
+                        ))}
+                      </Box>
+                    }
                   />
                 </ListItem>
               )}

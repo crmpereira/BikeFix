@@ -15,9 +15,11 @@ const authenticateToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('Auth middleware - Token decodificado:', { userId: decoded.userId });
     
     // Buscar usuário no banco de dados
     const user = await User.findById(decoded.userId).select('-password');
+    console.log('Auth middleware - Usuário encontrado:', user ? { id: user._id, email: user.email } : 'null');
     
     if (!user) {
       return res.status(401).json({
