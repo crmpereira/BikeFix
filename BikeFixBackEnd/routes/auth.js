@@ -47,6 +47,90 @@ const validateResendVerification = [
 // Rotas públicas (não requerem autenticação)
 
 /**
+ * @swagger
+ * /api/auth/register:
+ *   post:
+ *     summary: Registrar novo usuário
+ *     description: Cria uma nova conta de usuário no sistema
+ *     tags: [Autenticação]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
+ *               - userType
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Nome completo do usuário
+ *                 example: "João Silva"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Email do usuário
+ *                 example: "joao@exemplo.com"
+ *               password:
+ *                 type: string
+ *                 minLength: 6
+ *                 description: Senha do usuário
+ *                 example: "MinhaSenh@123"
+ *               userType:
+ *                 type: string
+ *                 enum: [customer, workshop]
+ *                 description: Tipo de usuário
+ *                 example: "customer"
+ *               workshopData:
+ *                 type: object
+ *                 description: Dados da oficina (obrigatório se userType for workshop)
+ *                 properties:
+ *                   name:
+ *                     type: string
+ *                     example: "Oficina do João"
+ *                   address:
+ *                     type: string
+ *                     example: "Rua das Flores, 123"
+ *                   phone:
+ *                     type: string
+ *                     example: "(11) 99999-9999"
+ *                   services:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                     example: ["Manutenção", "Reparo"]
+ *     responses:
+ *       201:
+ *         description: Usuário registrado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Usuário registrado com sucesso"
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Dados inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       409:
+ *         description: Email já cadastrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *
  * @route   POST /api/auth/register
  * @desc    Registrar novo usuário
  * @access  Public
@@ -54,6 +138,64 @@ const validateResendVerification = [
 router.post('/register', validateRegister, authController.register);
 
 /**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: Login de usuário
+ *     description: Autentica um usuário e retorna um token JWT
+ *     tags: [Autenticação]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Email do usuário
+ *                 example: "joao@exemplo.com"
+ *               password:
+ *                 type: string
+ *                 description: Senha do usuário
+ *                 example: "MinhaSenh@123"
+ *     responses:
+ *       200:
+ *         description: Login realizado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Login realizado com sucesso"
+ *                 token:
+ *                   type: string
+ *                   description: Token JWT para autenticação
+ *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Dados inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Credenciais inválidas
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *
  * @route   POST /api/auth/login
  * @desc    Login de usuário
  * @access  Public

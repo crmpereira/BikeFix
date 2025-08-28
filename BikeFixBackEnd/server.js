@@ -8,6 +8,7 @@ require('dotenv').config();
 // Importar configuração do banco e modelos
 const connectDB = require('./config/database');
 const { initializeDefaultData } = require('./models');
+const { swaggerUi, specs } = require('./config/swagger');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -46,6 +47,12 @@ app.get('/', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+// Documentação Swagger
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'BikeFix API Documentation'
+}));
 
 // Rotas da API
 app.use('/api/auth', require('./routes/auth'));
@@ -88,6 +95,7 @@ const startServer = async () => {
       console.log(`🚀 Servidor rodando na porta ${PORT}`);
       console.log(`📱 Ambiente: ${process.env.NODE_ENV || 'development'}`);
       console.log(`🌐 URL: http://localhost:${PORT}`);
+      console.log(`📚 Documentação Swagger: http://localhost:${PORT}/api-docs`);
     });
   } catch (error) {
     console.error('❌ Erro ao iniciar servidor:', error);
