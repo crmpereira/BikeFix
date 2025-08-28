@@ -91,6 +91,26 @@ const Register = () => {
     }
   };
 
+  // Função para aplicar máscara de CNPJ brasileiro
+  const applyCnpjMask = (value) => {
+    // Remove todos os caracteres não numéricos
+    const numbers = value.replace(/\D/g, '');
+    
+    // Aplica a máscara baseada no número de dígitos
+    if (numbers.length <= 2) {
+      return numbers;
+    } else if (numbers.length <= 5) {
+      return `${numbers.slice(0, 2)}.${numbers.slice(2)}`;
+    } else if (numbers.length <= 8) {
+      return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5)}`;
+    } else if (numbers.length <= 12) {
+      return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5, 8)}/${numbers.slice(8)}`;
+    } else {
+      // Limita a 14 dígitos e aplica máscara completa: XX.XXX.XXX/XXXX-XX
+      return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5, 8)}/${numbers.slice(8, 12)}-${numbers.slice(12, 14)}`;
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     
@@ -99,6 +119,11 @@ const Register = () => {
     // Aplicar máscara de telefone
     if (name === 'phone') {
       processedValue = applyPhoneMask(value);
+    }
+    
+    // Aplicar máscara de CNPJ
+    if (name === 'cnpj') {
+      processedValue = applyCnpjMask(value);
     }
     
     setFormData(prev => ({
@@ -154,6 +179,12 @@ const Register = () => {
         }
         if (!formData.cnpj) {
           newErrors.cnpj = 'CNPJ é obrigatório';
+        } else {
+          // Remove caracteres não numéricos para validação
+          const cnpjNumbers = formData.cnpj.replace(/\D/g, '');
+          if (cnpjNumbers.length !== 14) {
+            newErrors.cnpj = 'CNPJ deve ter 14 dígitos';
+          }
         }
         if (!formData.address) {
           newErrors.address = 'Endereço é obrigatório';

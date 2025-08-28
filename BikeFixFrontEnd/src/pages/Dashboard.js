@@ -22,6 +22,10 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   Build,
@@ -51,6 +55,7 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
 
   const [recentAppointments, setRecentAppointments] = useState([]);
+  const [statusFilter, setStatusFilter] = useState('pending');
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
@@ -115,6 +120,11 @@ const Dashboard = () => {
       // Não mostrar erro para agendamentos, apenas log
     }
   };
+
+  // Filtrar agendamentos por status
+  const filteredAppointments = statusFilter === 'all' 
+    ? recentAppointments 
+    : recentAppointments.filter(appointment => appointment.status === statusFilter);
 
   const loadNearbyWorkshops = async () => {
     try {
@@ -331,6 +341,7 @@ const Dashboard = () => {
                   <Button
                     variant="outlined"
                     size="small"
+                    onClick={() => navigate('/history')}
                   >
                     Ver Histórico
                   </Button>
@@ -348,6 +359,7 @@ const Dashboard = () => {
                   <Button
                     variant="outlined"
                     size="small"
+                    onClick={() => navigate('/my-bike')}
                   >
                     Gerenciar
                   </Button>
@@ -358,12 +370,29 @@ const Dashboard = () => {
 
           {/* Próximos Agendamentos */}
           <Paper sx={{ p: 3, mb: 3 }}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-              Próximos Agendamentos
-            </Typography>
-            {recentAppointments.length > 0 ? (
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Próximos Agendamentos
+              </Typography>
+              <FormControl size="small" sx={{ minWidth: 150 }}>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={statusFilter}
+                  label="Status"
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <MenuItem value="all">Todos</MenuItem>
+                  <MenuItem value="pending">Pendente</MenuItem>
+                  <MenuItem value="confirmed">Confirmado</MenuItem>
+                  <MenuItem value="in_progress">Em Andamento</MenuItem>
+                  <MenuItem value="completed">Concluído</MenuItem>
+                  <MenuItem value="cancelled">Cancelado</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+            {filteredAppointments.length > 0 ? (
               <List>
-                {recentAppointments.map((appointment) => (
+                {filteredAppointments.map((appointment) => (
                   <ListItem key={appointment.id} divider>
                     <ListItemIcon>
                       {getStatusIcon(appointment.status)}

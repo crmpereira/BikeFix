@@ -22,6 +22,8 @@ import WorkshopSearch from './pages/WorkshopSearch';
 import WorkshopDetail from './pages/WorkshopDetail';
 import Appointment from './pages/Appointment';
 import Profile from './pages/Profile';
+import History from './pages/History';
+import MyBike from './pages/MyBike';
 import WorkshopDashboard from './pages/WorkshopDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
@@ -101,6 +103,8 @@ function App() {
                   <Route path="/workshops/:id" element={<WorkshopDetail />} />
                   <Route path="/appointment" element={<Appointment />} />
                   <Route path="/profile" element={<Profile />} />
+                  <Route path="/history" element={<History />} />
+                  <Route path="/my-bike" element={<MyBike />} />
                   <Route path="/workshop-dashboard" element={<WorkshopDashboard />} />
                   <Route path="/admin" element={<AdminDashboard />} />
                   <Route path="*" element={<NotFound />} />

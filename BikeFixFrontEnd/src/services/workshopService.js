@@ -165,6 +165,7 @@ const workshopService = {
       owner: workshop.owner,
       email: workshop.email,
       phone: workshop.phone,
+      whatsapp: workshop.whatsapp || workshop.phone || null,
       description: workshop.description,
       city: workshop.address?.city || '',
       state: workshop.address?.state || '',
@@ -181,6 +182,7 @@ const workshopService = {
       priceRange: this.calculatePriceRange(workshop.services || []),
       openHours: this.formatOpenHours(workshop.workingHours || {}),
       distance: workshop.distance ? `${workshop.distance} km` : null,
+      reviews: workshop.reviews || [],
       image: null // Placeholder para futuras implementações
     };
   },

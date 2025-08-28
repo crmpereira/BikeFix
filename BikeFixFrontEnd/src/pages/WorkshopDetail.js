@@ -10,7 +10,6 @@ import {
   Avatar,
   Rating,
   Chip,
-  Divider,
   List,
   ListItem,
   ListItemText,
@@ -29,6 +28,13 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Divider,
 } from '@mui/material';
 import {
   Build,
@@ -49,6 +55,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-toastify';
 import workshopService from '../services/workshopService';
+import appointmentService from '../services/appointmentService';
 
 const WorkshopDetail = () => {
   const { id } = useParams();
@@ -65,10 +72,17 @@ const WorkshopDetail = () => {
     time: '',
     description: '',
   });
+  const [scheduleDate, setScheduleDate] = useState(new Date().toISOString().split('T')[0]);
+  const [occupiedSlots, setOccupiedSlots] = useState([]);
+  const [loadingSchedule, setLoadingSchedule] = useState(false);
 
   useEffect(() => {
     loadWorkshopDetails();
   }, [id]);
+
+  useEffect(() => {
+    loadOccupiedSlots();
+  }, [workshop, scheduleDate]);
 
   const loadWorkshopDetails = async () => {
     try {
@@ -89,6 +103,22 @@ const WorkshopDetail = () => {
       toast.error('Erro ao carregar detalhes da oficina');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadOccupiedSlots = async () => {
+    if (!workshop || !scheduleDate) return;
+    
+    setLoadingSchedule(true);
+    try {
+      const result = await appointmentService.getAvailableSlots(workshop._id, scheduleDate);
+      if (result.success) {
+        setOccupiedSlots(result.data.occupiedSlots || []);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar horários ocupados:', error);
+    } finally {
+      setLoadingSchedule(false);
     }
   };
 
@@ -205,6 +235,15 @@ const WorkshopDetail = () => {
                   </Typography>
                 </Box>
               </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Schedule sx={{ mr: 1, color: 'text.secondary' }} />
+                  <Typography variant="body2">
+                    Segunda a Sexta: 08:00 - 17:30
+                  </Typography>
+                </Box>
+              </Grid>
             </Grid>
           </Grid>
           
@@ -221,17 +260,19 @@ const WorkshopDetail = () => {
                 Agendar Serviço
               </Button>
               
-              <Button
-                variant="outlined"
-                size="large"
-                fullWidth
-                startIcon={<WhatsApp />}
-                href={`https://wa.me/${workshop.whatsapp.replace(/\D/g, '')}`}
-                target="_blank"
-                sx={{ mb: 1 }}
-              >
-                WhatsApp
-              </Button>
+              {workshop.whatsapp && (
+                <Button
+                  variant="outlined"
+                  size="large"
+                  fullWidth
+                  startIcon={<WhatsApp />}
+                  href={`https://wa.me/${workshop.whatsapp.replace(/\D/g, '')}`}
+                  target="_blank"
+                  sx={{ mb: 1 }}
+                >
+                  WhatsApp
+                </Button>
+              )}
               
               <Button
                 variant="outlined"
@@ -257,79 +298,145 @@ const WorkshopDetail = () => {
 
         <TabPanel value={tabValue} index={0}>
           <Grid container spacing={2}>
-            {workshop.services.map((service) => (
-              <Grid item xs={12} md={6} key={service.id}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                      {service.name}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      {service.description}
-                    </Typography>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <AttachMoney sx={{ fontSize: 16, color: 'primary.main' }} />
-                        <Typography variant="body1" color="primary" sx={{ fontWeight: 600 }}>
-                          {service.price}
-                        </Typography>
+            {workshop.services && workshop.services.length > 0 ? (
+              workshop.services.map((service) => (
+                <Grid item xs={12} md={6} key={service.id || service.name}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                        {service.name}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        {service.description || 'Descrição não disponível'}
+                      </Typography>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <AttachMoney sx={{ fontSize: 16, color: 'primary.main' }} />
+                          <Typography variant="body1" color="primary" sx={{ fontWeight: 600 }}>
+                            {service.price || service.basePrice || 'Consultar'}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <AccessTime sx={{ fontSize: 16, color: 'text.secondary' }} />
+                          <Typography variant="body2" color="text.secondary">
+                            {service.duration || 'A consultar'}
+                          </Typography>
+                        </Box>
                       </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <AccessTime sx={{ fontSize: 16, color: 'text.secondary' }} />
-                        <Typography variant="body2" color="text.secondary">
-                          {service.duration}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))
+            ) : (
+              <Grid item xs={12}>
+                <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+                  Nenhum serviço disponível
+                </Typography>
               </Grid>
-            ))}
+            )}
           </Grid>
         </TabPanel>
 
         <TabPanel value={tabValue} index={1}>
-          <List>
-            {Object.entries(workshop.openHours).map(([day, hours]) => (
-              <ListItem key={day}>
-                <ListItemIcon>
-                  <Schedule />
-                </ListItemIcon>
-                <ListItemText
-                  primary={day.charAt(0).toUpperCase() + day.slice(1)}
-                  secondary={hours}
-                />
-              </ListItem>
-            ))}
-          </List>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Horários de Agendamento
+            </Typography>
+            <TextField
+              type="date"
+              label="Data"
+              value={scheduleDate}
+              onChange={(e) => setScheduleDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              sx={{ mb: 2 }}
+            />
+          </Box>
+          
+          {loadingSchedule ? (
+            <Box display="flex" justifyContent="center" p={3}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Horário</TableCell>
+                    <TableCell>Status</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {[
+                    '08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
+                    '11:00', '11:30', '14:00', '14:30', '15:00', '15:30',
+                    '16:00', '16:30', '17:00', '17:30'
+                  ].map((time) => {
+                    const isOccupied = occupiedSlots.includes(time);
+                    return (
+                      <TableRow
+                        key={time}
+                        sx={{
+                          backgroundColor: isOccupied ? '#ffebee' : '#e8f5e8',
+                          '&:hover': {
+                            backgroundColor: isOccupied ? '#ffcdd2' : '#c8e6c9'
+                          }
+                        }}
+                      >
+                        <TableCell>{time}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={isOccupied ? 'Ocupado' : 'Disponível'}
+                            color={isOccupied ? 'error' : 'success'}
+                            size="small"
+                          />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+          
+
         </TabPanel>
 
         <TabPanel value={tabValue} index={2}>
-          {workshop.reviews.map((review) => (
-            <Box key={review.id} sx={{ mb: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <Avatar sx={{ mr: 2 }}>
-                  <Person />
-                </Avatar>
-                <Box sx={{ flexGrow: 1 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                    {review.user}
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Rating value={review.rating} readOnly size="small" />
-                    <Typography variant="body2" color="text.secondary">
-                      {new Date(review.date).toLocaleDateString('pt-BR')}
+          {workshop.reviews && workshop.reviews.length > 0 ? (
+            workshop.reviews.map((review, index) => (
+              <Box key={review.id || index} sx={{ mb: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Avatar sx={{ mr: 2 }}>
+                    <Person />
+                  </Avatar>
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                      {review.user || 'Usuário anônimo'}
                     </Typography>
-                    <Chip label={review.service} size="small" variant="outlined" />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Rating value={review.rating || 0} readOnly size="small" />
+                      <Typography variant="body2" color="text.secondary">
+                        {review.date ? new Date(review.date).toLocaleDateString('pt-BR') : 'Data não informada'}
+                      </Typography>
+                      {review.service && (
+                        <Chip label={review.service} size="small" variant="outlined" />
+                      )}
+                    </Box>
                   </Box>
                 </Box>
+                <Typography variant="body2" sx={{ ml: 7 }}>
+                  {review.comment || 'Sem comentários'}
+                </Typography>
+                <Divider sx={{ mt: 2 }} />
               </Box>
-              <Typography variant="body2" sx={{ ml: 7 }}>
-                {review.comment}
+            ))
+          ) : (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Typography variant="body1" color="text.secondary">
+                Ainda não há avaliações para esta oficina
               </Typography>
-              <Divider sx={{ mt: 2 }} />
             </Box>
-          ))}
+          )}
         </TabPanel>
       </Paper>
 

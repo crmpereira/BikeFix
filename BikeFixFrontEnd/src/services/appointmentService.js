@@ -66,8 +66,29 @@ const appointmentService = {
     try {
       const queryParams = new URLSearchParams();
       
+      // Adicionar filtros específicos
+      if (filters.status && filters.status !== 'all') {
+        queryParams.append('status', filters.status);
+      }
+      if (filters.dateFrom) {
+        queryParams.append('dateFrom', filters.dateFrom);
+      }
+      if (filters.dateTo) {
+        queryParams.append('dateTo', filters.dateTo);
+      }
+      if (filters.search) {
+        queryParams.append('search', filters.search);
+      }
+      if (filters.page) {
+        queryParams.append('page', filters.page);
+      }
+      if (filters.limit) {
+        queryParams.append('limit', filters.limit);
+      }
+      
+      // Adicionar outros filtros
       Object.keys(filters).forEach(key => {
-        if (filters[key]) {
+        if (filters[key] && !['status', 'dateFrom', 'dateTo', 'search', 'page', 'limit'].includes(key)) {
           queryParams.append(key, filters[key]);
         }
       });
@@ -83,6 +104,7 @@ const appointmentService = {
       return {
         success: true,
         data: formattedAppointments,
+        total: response.data.total || response.data.pagination?.total || formattedAppointments.length,
         pagination: response.data.pagination
       };
     } catch (error) {
