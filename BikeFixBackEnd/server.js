@@ -15,10 +15,10 @@ const PORT = process.env.PORT || 3000;
 // Configurações de segurança
 app.use(helmet());
 
-// Rate limiting
+// Rate limiting (configuração para desenvolvimento)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // máximo 100 requests por IP
+  max: 1000, // máximo 1000 requests por IP (aumentado para desenvolvimento)
   message: {
     error: 'Muitas tentativas. Tente novamente em 15 minutos.'
   }
@@ -49,9 +49,10 @@ app.get('/', (req, res) => {
 
 // Rotas da API
 app.use('/api/auth', require('./routes/auth'));
-// app.use('/api/users', require('./routes/users'));
-// app.use('/api/workshops', require('./routes/workshops'));
-// app.use('/api/appointments', require('./routes/appointments'));
+app.use('/api/users', require('./routes/users'));
+app.use('/api/workshops', require('./routes/workshops'));
+app.use('/api/appointments', require('./routes/appointments'));
+app.use('/api/reviews', require('./routes/reviews'));
 // app.use('/api/services', require('./routes/services'));
 // app.use('/api/admin', require('./routes/admin'));
 
