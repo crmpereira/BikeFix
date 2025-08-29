@@ -68,7 +68,11 @@ const createAppointment = async (req, res) => {
       bikeInfo: bikeInfo || {},
       description: description || '',
       urgency: urgency || 'normal',
-      totalPrice,
+      pricing: {
+        basePrice: totalPrice,
+        additionalPrice: 0,
+        totalPrice: totalPrice
+      },
       status: 'pending'
     });
 
