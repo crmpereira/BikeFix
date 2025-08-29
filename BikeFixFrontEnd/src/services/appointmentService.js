@@ -294,7 +294,7 @@ const appointmentService = {
       bikeInfo: appointment.bikeInfo || {},
       description: appointment.description || '',
       urgency: appointment.urgency || 'normal',
-      totalPrice: appointment.totalPrice || 0,
+      totalPrice: appointment.pricing?.totalPrice || appointment.totalPrice || 0,
       notes: appointment.notes || '',
       createdAt: appointment.createdAt,
       updatedAt: appointment.updatedAt
