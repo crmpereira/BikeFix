@@ -32,6 +32,7 @@ import {
 import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-toastify';
+import ServiceSelector from '../components/ServiceSelector';
 
 const Register = () => {
   const { register, isAuthenticated } = useAuth();
@@ -57,7 +58,7 @@ const Register = () => {
     state: '',
     zipCode: '',
     description: '',
-    services: '',
+    services: [],
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -197,6 +198,9 @@ const Register = () => {
         }
         if (!formData.zipCode) {
           newErrors.zipCode = 'CEP é obrigatório';
+        }
+        if (!formData.services || formData.services.length === 0) {
+          newErrors.services = 'Selecione pelo menos um serviço oferecido';
         }
       }
     }
@@ -528,16 +532,13 @@ const Register = () => {
                 helperText="Descreva os serviços e especialidades da sua oficina"
               />
               
-              <TextField
-                margin="normal"
-                fullWidth
-                id="services"
-                label="Serviços Oferecidos"
-                name="services"
-                value={formData.services}
-                onChange={handleChange}
-                helperText="Ex: Manutenção preventiva, Reparo de freios, Troca de pneus, etc."
-              />
+              <Box sx={{ mt: 2 }}>
+                <ServiceSelector
+                  selectedServices={formData.services}
+                  onServicesChange={(services) => setFormData(prev => ({ ...prev, services }))}
+                  error={errors.services}
+                />
+              </Box>
             </>
           );
         }
