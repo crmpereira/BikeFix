@@ -1,0 +1,70 @@
+# =============================================================================
+# CONFIGURAÇÃO DO RENDER PARA BIKEFIX
+# =============================================================================
+# Este arquivo configura o deploy automático do BikeFix no Render.com
+# Inclui tanto o backend (Node.js) quanto o frontend (React)
+
+services:
+  # =============================================================================
+  # BACKEND - API NODE.JS
+  # =============================================================================
+  - type: web
+    name: bikefix-backend
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    rootDir: ./BikeFixBackEnd
+    plan: free
+    region: oregon
+    branch: main
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false  # Será configurado manualmente no dashboard
+      - key: JWT_SECRET
+        sync: false  # Será configurado manualmente no dashboard
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: FRONTEND_URL
+        sync: false  # Será configurado após deploy do frontend
+
+  # =============================================================================
+  # FRONTEND - REACT APP
+  # =============================================================================
+  - type: web
+    name: bikefix-frontend
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./build
+    rootDir: ./BikeFixFrontEnd
+    plan: free
+    region: oregon
+    branch: main
+    envVars:
+      - key: REACT_APP_API_URL
+        sync: false  # Será configurado após deploy do backend
+      - key: REACT_APP_GOOGLE_MAPS_API_KEY
+        sync: false  # Será configurado manualmente no dashboard
+
+# =============================================================================
+# INSTRUÇÕES DE DEPLOY
+# =============================================================================
+# 1. Faça commit deste arquivo no seu repositório
+# 2. No Render Dashboard:
+#    a) Conecte seu repositório GitHub
+#    b) Configure as variáveis de ambiente marcadas como 'sync: false'
+#    c) O deploy será automático após cada push para a branch main
+# 
+# Variáveis obrigatórias para configurar:
+# Backend:
+#   - MONGODB_URI: String de conexão do MongoDB Atlas
+#   - JWT_SECRET: Chave secreta forte para JWT
+#   - FRONTEND_URL: URL do frontend após deploy
+# 
+# Frontend:
+#   - REACT_APP_API_URL: URL do backend após deploy
+#   - REACT_APP_GOOGLE_MAPS_API_KEY: Chave do Google Maps API
