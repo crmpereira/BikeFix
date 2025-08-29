@@ -44,7 +44,10 @@ const userSchema = new mongoose.Schema({
   },
   isVerified: {
     type: Boolean,
-    default: false
+    default: function() {
+      // Workshops são verificados automaticamente
+      return this.userType === 'workshop';
+    }
   },
   
   // Dados específicos do ciclista
