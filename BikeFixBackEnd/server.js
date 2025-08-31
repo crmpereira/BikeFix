@@ -6,7 +6,7 @@ const morgan = require('morgan');
 require('dotenv').config();
 
 // Importar configuração do banco e modelos
-const connectDB = require('./config/database');
+const { connectDB } = require('./config/database-dev');
 const { initializeDefaultData } = require('./models');
 const { swaggerUi, specs } = require('./config/swagger');
 
@@ -110,11 +110,11 @@ const startServer = async () => {
     // Inicializar dados padrão
     await initializeDefaultData();
     
+    // Iniciar servidor
     app.listen(PORT, () => {
       console.log(`🚀 Servidor rodando na porta ${PORT}`);
-      console.log(`📱 Ambiente: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`🌐 URL: http://localhost:${PORT}`);
-      console.log(`📚 Documentação Swagger: http://localhost:${PORT}/api-docs`);
+      console.log(`📚 Documentação da API: http://localhost:${PORT}/api-docs`);
+      console.log(`🌐 Health check: http://localhost:${PORT}/api/health`);
     });
   } catch (error) {
     console.error('❌ Erro ao iniciar servidor:', error);

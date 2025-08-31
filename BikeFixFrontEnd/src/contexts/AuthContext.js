@@ -104,10 +104,12 @@ export const AuthProvider = ({ children }) => {
         formattedData.workshopData = {
           businessName: userData.workshopName,
           cnpj: userData.cnpj,
-          address: userData.address,
-          city: userData.city,
-          state: userData.state,
-          zipCode: userData.zipCode,
+          address: {
+            street: userData.address,
+            city: userData.city,
+            state: userData.state,
+            zipCode: userData.zipCode
+          },
           description: userData.description,
           services: userData.services
         };

@@ -4,7 +4,7 @@ const nodemailer = require('nodemailer');
 const createTransporter = () => {
   if (process.env.NODE_ENV === 'production') {
     // Configuração para produção (ex: SendGrid, AWS SES, etc.)
-    return nodemailer.createTransporter({
+    return nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: process.env.EMAIL_USER,
@@ -13,7 +13,7 @@ const createTransporter = () => {
     });
   } else {
     // Configuração para desenvolvimento (Ethereal Email)
-    return nodemailer.createTransporter({
+    return nodemailer.createTransport({
       host: 'smtp.ethereal.email',
       port: 587,
       auth: {
@@ -235,6 +235,35 @@ const emailTemplates = {
 // Função principal para enviar emails
 const sendEmail = async ({ to, subject, template, data, html, text }) => {
   try {
+    // Em desenvolvimento, se não há credenciais de email válidas, simular envio
+    if (process.env.NODE_ENV !== 'production' && (!process.env.EMAIL_USER || process.env.EMAIL_USER === 'your_email@gmail.com')) {
+      let emailContent = {};
+      
+      if (template && emailTemplates[template]) {
+        const templateData = emailTemplates[template];
+        emailContent = {
+          subject: subject || templateData.subject,
+          html: templateData.html(data),
+          text: templateData.text ? templateData.text(data) : undefined
+        };
+      } else {
+        emailContent = {
+          subject,
+          html,
+          text
+        };
+      }
+      
+      console.log('📧 Email simulado (desenvolvimento):', {
+        to,
+        subject: emailContent.subject,
+        template: template || 'custom',
+        data: data || 'N/A'
+      });
+      
+      return { messageId: 'simulated-' + Date.now() };
+    }
+
     const transporter = createTransporter();
 
     let emailContent = {};

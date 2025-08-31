@@ -66,8 +66,12 @@ const Navbar = () => {
 
   const menuItems = [
     { text: 'Início', path: '/', icon: <Dashboard /> },
-    { text: 'Buscar Oficinas', path: '/workshops', icon: <Search /> },
   ];
+
+  // Adicionar "Buscar Oficinas" apenas para usuários não autenticados ou ciclistas
+  if (!isAuthenticated || user?.userType === 'cyclist') {
+    menuItems.push({ text: 'Buscar Oficinas', path: '/workshops', icon: <Search /> });
+  }
 
   if (isAuthenticated) {
     if (user?.userType === 'cyclist') {

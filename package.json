@@ -1,5 +1,38 @@
 {
+  "name": "bikefix",
+  "version": "1.0.0",
+  "description": "Plataforma digital que conecta ciclistas a oficinas especializadas em bicicletas",
+  "main": "index.js",
+  "scripts": {
+    "install:backend": "cd BikeFixBackEnd && npm install",
+    "install:frontend": "cd BikeFixFrontEnd && npm install",
+    "install:all": "npm run install:backend && npm run install:frontend",
+    "dev:backend": "cd BikeFixBackEnd && npm run dev",
+    "dev:frontend": "cd BikeFixFrontEnd && npm start",
+    "build:frontend": "cd BikeFixFrontEnd && npm run build",
+    "start:backend": "cd BikeFixBackEnd && npm start",
+    "test:backend": "cd BikeFixBackEnd && npm test",
+    "test:frontend": "cd BikeFixFrontEnd && npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/seu-usuario/bikefix.git"
+  },
+  "keywords": [
+    "bike",
+    "bicycle",
+    "workshop",
+    "repair",
+    "maintenance",
+    "cycling"
+  ],
+  "author": "Seu Nome",
+  "license": "MIT",
   "dependencies": {
     "axios": "^1.11.0"
+  },
+  "engines": {
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
   }
 }

@@ -25,7 +25,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-toastify';
 
 const Login = () => {
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -40,10 +40,19 @@ const Login = () => {
   // Redirecionar se já estiver autenticado
   useEffect(() => {
     if (isAuthenticated) {
-      const from = location.state?.from?.pathname || '/dashboard';
+      // Redirecionar baseado no tipo de usuário
+      let redirectPath = '/dashboard'; // padrão para ciclistas
+      
+      if (user?.userType === 'workshop') {
+        redirectPath = '/workshop-dashboard';
+      } else if (user?.userType === 'admin') {
+        redirectPath = '/admin';
+      }
+      
+      const from = location.state?.from?.pathname || redirectPath;
       navigate(from, { replace: true });
     }
-  }, [isAuthenticated, navigate, location]);
+  }, [isAuthenticated, user, navigate, location]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -93,7 +102,17 @@ const Login = () => {
       
       if (result.success) {
         toast.success('Login realizado com sucesso!');
-        const from = location.state?.from?.pathname || '/dashboard';
+        
+        // Redirecionar baseado no tipo de usuário
+        let redirectPath = '/dashboard'; // padrão para ciclistas
+        
+        if (result.user.userType === 'workshop') {
+          redirectPath = '/workshop-dashboard';
+        } else if (result.user.userType === 'admin') {
+          redirectPath = '/admin';
+        }
+        
+        const from = location.state?.from?.pathname || redirectPath;
         navigate(from, { replace: true });
       } else {
         toast.error(result.error);

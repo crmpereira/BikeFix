@@ -349,23 +349,26 @@ const Dashboard = () => {
               </Card>
             </Grid>
             
-            <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ textAlign: 'center', p: 2 }}>
-                <CardContent>
-                  <Build sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
-                  <Typography variant="h6" gutterBottom>
-                    Minha Bike
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={() => navigate('/my-bike')}
-                  >
-                    Gerenciar
-                  </Button>
-                </CardContent>
-              </Card>
-            </Grid>
+            {/* Seção Minha Bike - apenas para ciclistas */}
+            {user?.userType === 'cyclist' && (
+              <Grid item xs={12} sm={6} md={3}>
+                <Card sx={{ textAlign: 'center', p: 2 }}>
+                  <CardContent>
+                    <Build sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
+                    <Typography variant="h6" gutterBottom>
+                      Minha Bike
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => navigate('/my-bike')}
+                    >
+                      Gerenciar
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
           </Grid>
 
           {/* Próximos Agendamentos */}

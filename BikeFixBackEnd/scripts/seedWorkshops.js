@@ -1,17 +1,7 @@
 const mongoose = require('mongoose');
 const User = require('../models/User');
+const { connectDB } = require('../config/database-dev');
 require('dotenv').config();
-
-// Conectar ao MongoDB
-const connectDB = async () => {
-  try {
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log('✅ Conectado ao MongoDB');
-  } catch (error) {
-    console.error('❌ Erro ao conectar ao MongoDB:', error);
-    process.exit(1);
-  }
-};
 
 // Dados das oficinas para popular o banco
 const workshopsData = [
