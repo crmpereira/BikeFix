@@ -28,6 +28,9 @@ import {
   Lock,
   Phone,
   Google,
+  DirectionsBike,
+  Add,
+  Delete,
 } from '@mui/icons-material';
 import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -50,6 +53,8 @@ const Register = () => {
     // Campos específicos para ciclistas
     bikeType: '',
     experience: '',
+    // Campos para bicicletas do ciclista
+    bikes: [],
     // Campos específicos para oficinas
     workshopName: '',
     cnpj: '',
@@ -65,7 +70,9 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const steps = ['Informações Básicas', 'Dados Específicos', 'Confirmação'];
+  const steps = formData.userType === 'cyclist' 
+    ? ['Informações Básicas', 'Dados Específicos', 'Cadastro de Bikes', 'Confirmação']
+    : ['Informações Básicas', 'Dados Específicos', 'Confirmação'];
 
   // Redirecionar se já estiver autenticado
   useEffect(() => {
@@ -203,6 +210,21 @@ const Register = () => {
           newErrors.services = 'Selecione pelo menos um serviço oferecido';
         }
       }
+    } else if (step === 2) {
+      // Validação do terceiro passo (cadastro de bikes para ciclistas)
+      if (formData.userType === 'cyclist') {
+        // Validar bikes se houver alguma cadastrada
+        if (formData.bikes && formData.bikes.length > 0) {
+          formData.bikes.forEach((bike, index) => {
+            if (bike.brand && !bike.model) {
+              newErrors[`bike_${index}_model`] = 'Modelo é obrigatório quando marca é preenchida';
+            }
+            if (bike.model && !bike.brand) {
+              newErrors[`bike_${index}_brand`] = 'Marca é obrigatória quando modelo é preenchido';
+            }
+          });
+        }
+      }
     }
 
     setErrors(newErrors);
@@ -223,6 +245,14 @@ const Register = () => {
     e.preventDefault();
     console.log('Register - handleSubmit chamado, activeStep:', activeStep);
     console.log('Register - formData atual:', formData);
+    
+    const isLastStep = (formData.userType === 'cyclist' && activeStep === 3) || 
+                      (formData.userType === 'workshop' && activeStep === 2);
+    
+    if (!isLastStep) {
+      handleNext();
+      return;
+    }
     
     if (!validateStep(activeStep)) {
       console.log('Register - Validação falhou para step:', activeStep);
@@ -544,50 +574,198 @@ const Register = () => {
         }
       
       case 2:
-        return (
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="h6" gutterBottom>
-              Confirme seus dados
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Revise as informações antes de finalizar o cadastro
-            </Typography>
-            
-            <Box sx={{ textAlign: 'left', mb: 3 }}>
-              <Typography variant="subtitle2" gutterBottom>
-                <strong>Nome:</strong> {formData.name}
+        if (formData.userType === 'cyclist') {
+          return (
+            <Box>
+              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <DirectionsBike color="primary" />
+                Cadastre suas Bicicletas
               </Typography>
-              <Typography variant="subtitle2" gutterBottom>
-                <strong>Email:</strong> {formData.email}
-              </Typography>
-              <Typography variant="subtitle2" gutterBottom>
-                <strong>Telefone:</strong> {formData.phone}
-              </Typography>
-              <Typography variant="subtitle2" gutterBottom>
-                <strong>Tipo:</strong> {formData.userType === 'cyclist' ? 'Ciclista' : 'Oficina'}
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Adicione pelo menos uma bicicleta para poder fazer agendamentos
               </Typography>
               
-              {formData.userType === 'workshop' && (
-                <>
-                  <Typography variant="subtitle2" gutterBottom>
-                    <strong>Nome da Oficina:</strong> {formData.workshopName}
-                  </Typography>
-                  <Typography variant="subtitle2" gutterBottom>
-                    <strong>CNPJ:</strong> {formData.cnpj}
-                  </Typography>
-                  <Typography variant="subtitle2" gutterBottom>
-                    <strong>Endereço:</strong> {formData.address}, {formData.city} - {formData.state}
-                  </Typography>
-                </>
+              {formData.bikes.map((bike, index) => (
+                <Paper key={index} sx={{ p: 2, mb: 2, border: '1px solid #e0e0e0' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                      Bicicleta {index + 1}
+                    </Typography>
+                    <IconButton 
+                      onClick={() => {
+                        const newBikes = formData.bikes.filter((_, i) => i !== index);
+                        setFormData(prev => ({ ...prev, bikes: newBikes }));
+                      }}
+                      color="error"
+                      size="small"
+                    >
+                      <Delete />
+                    </IconButton>
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                    <TextField
+                      fullWidth
+                      label="Marca"
+                      value={bike.brand || ''}
+                      onChange={(e) => {
+                        const newBikes = [...formData.bikes];
+                        newBikes[index] = { ...newBikes[index], brand: e.target.value };
+                        setFormData(prev => ({ ...prev, bikes: newBikes }));
+                      }}
+                      required
+                    />
+                    <TextField
+                      fullWidth
+                      label="Modelo"
+                      value={bike.model || ''}
+                      onChange={(e) => {
+                        const newBikes = [...formData.bikes];
+                        newBikes[index] = { ...newBikes[index], model: e.target.value };
+                        setFormData(prev => ({ ...prev, bikes: newBikes }));
+                      }}
+                      required
+                    />
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                    <TextField
+                      fullWidth
+                      label="Ano"
+                      type="number"
+                      value={bike.year || ''}
+                      onChange={(e) => {
+                        const newBikes = [...formData.bikes];
+                        newBikes[index] = { ...newBikes[index], year: parseInt(e.target.value) || '' };
+                        setFormData(prev => ({ ...prev, bikes: newBikes }));
+                      }}
+                    />
+                    <TextField
+                      select
+                      fullWidth
+                      label="Tipo"
+                      value={bike.type || ''}
+                      onChange={(e) => {
+                        const newBikes = [...formData.bikes];
+                        newBikes[index] = { ...newBikes[index], type: e.target.value };
+                        setFormData(prev => ({ ...prev, bikes: newBikes }));
+                      }}
+                      SelectProps={{
+                        native: true,
+                      }}
+                    >
+                      <option value="">Selecione o tipo</option>
+                      <option value="mountain">Mountain Bike</option>
+                      <option value="road">Speed/Road</option>
+                      <option value="urban">Urbana</option>
+                      <option value="hybrid">Híbrida</option>
+                      <option value="bmx">BMX</option>
+                      <option value="electric">Elétrica</option>
+                      <option value="other">Outro</option>
+                    </TextField>
+                  </Box>
+                  
+                  <TextField
+                    fullWidth
+                    label="Número de Série (opcional)"
+                    value={bike.serialNumber || ''}
+                    onChange={(e) => {
+                      const newBikes = [...formData.bikes];
+                      newBikes[index] = { ...newBikes[index], serialNumber: e.target.value };
+                      setFormData(prev => ({ ...prev, bikes: newBikes }));
+                    }}
+                  />
+                </Paper>
+              ))}
+              
+              <Button
+                variant="outlined"
+                startIcon={<Add />}
+                onClick={() => {
+                  setFormData(prev => ({
+                    ...prev,
+                    bikes: [...prev.bikes, { brand: '', model: '', year: '', type: '', serialNumber: '' }]
+                  }));
+                }}
+                sx={{ mb: 2 }}
+              >
+                Adicionar Bicicleta
+              </Button>
+              
+              {formData.bikes.length === 0 && (
+                <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                  Você pode pular esta etapa e cadastrar suas bicicletas depois no seu perfil.
+                </Typography>
               )}
             </Box>
-          </Box>
-        );
+          );
+        } else {
+          // Para oficinas, pular direto para confirmação
+          return renderConfirmationStep();
+        }
       
-      default:
-        return null;
-    }
-  };
+      case 3:
+          return renderConfirmationStep();
+          
+        default:
+          return null;
+      }
+    };
+    
+    const renderConfirmationStep = () => {
+      return (
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography variant="h6" gutterBottom>
+            Confirme seus dados
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Revise as informações antes de finalizar o cadastro
+          </Typography>
+          
+          <Box sx={{ textAlign: 'left', mb: 3 }}>
+            <Typography variant="subtitle2" gutterBottom>
+              <strong>Nome:</strong> {formData.name}
+            </Typography>
+            <Typography variant="subtitle2" gutterBottom>
+              <strong>Email:</strong> {formData.email}
+            </Typography>
+            <Typography variant="subtitle2" gutterBottom>
+              <strong>Telefone:</strong> {formData.phone}
+            </Typography>
+            <Typography variant="subtitle2" gutterBottom>
+              <strong>Tipo:</strong> {formData.userType === 'cyclist' ? 'Ciclista' : 'Oficina'}
+            </Typography>
+            
+            {formData.userType === 'cyclist' && formData.bikes.length > 0 && (
+              <>
+                <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+                  <strong>Bicicletas cadastradas:</strong>
+                </Typography>
+                {formData.bikes.map((bike, index) => (
+                  <Typography key={index} variant="body2" sx={{ ml: 2, mb: 1 }}>
+                    • {bike.brand} {bike.model} {bike.year && `(${bike.year})`}
+                  </Typography>
+                ))}
+              </>
+            )}
+            
+            {formData.userType === 'workshop' && (
+              <>
+                <Typography variant="subtitle2" gutterBottom>
+                  <strong>Nome da Oficina:</strong> {formData.workshopName}
+                </Typography>
+                <Typography variant="subtitle2" gutterBottom>
+                  <strong>CNPJ:</strong> {formData.cnpj}
+                </Typography>
+                <Typography variant="subtitle2" gutterBottom>
+                  <strong>Endereço:</strong> {formData.address}, {formData.city} - {formData.state}
+                </Typography>
+              </>
+            )}
+          </Box>
+        </Box>
+      );
+    };
 
   return (
     <Container component="main" maxWidth="md">

@@ -6,7 +6,7 @@ const morgan = require('morgan');
 require('dotenv').config();
 
 // Importar configuração do banco
-const connectDB = require('./config/database');
+const { connectDB } = require('./config/database');
 
 // Importar rotas
 const authRoutes = require('./routes/auth');

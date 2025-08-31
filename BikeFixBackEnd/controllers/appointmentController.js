@@ -26,6 +26,15 @@ const createAppointment = async (req, res) => {
       });
     }
 
+    // Verificar se o ciclista tem pelo menos uma bike cadastrada
+    const cyclist = await User.findById(req.user.id);
+    if (!cyclist || !cyclist.cyclistData || !cyclist.cyclistData.bikes || cyclist.cyclistData.bikes.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'É necessário ter pelo menos uma bicicleta cadastrada para fazer um agendamento. Cadastre sua bike no seu perfil primeiro.'
+      });
+    }
+
     // Verificar se a data/hora não está no passado
     const appointmentDateTime = new Date(`${appointmentDate}T${appointmentTime}`);
     if (appointmentDateTime <= new Date()) {

@@ -122,6 +122,13 @@ const Appointment = () => {
 
 
   const handleNext = () => {
+    // Verificar se o usuário tem bicicletas cadastradas antes de prosseguir
+    if (userBikes.length === 0) {
+      toast.error('É necessário ter pelo menos uma bicicleta cadastrada para fazer um agendamento. Cadastre sua bike primeiro.');
+      navigate('/my-bike');
+      return;
+    }
+    
     if (activeStep === 1 && !selectedWorkshop) {
       toast.error('Selecione uma oficina');
       return;
@@ -157,6 +164,13 @@ const Appointment = () => {
   };
 
   const handleConfirmAppointment = async () => {
+    // Verificar novamente se o usuário tem bicicletas cadastradas
+    if (userBikes.length === 0) {
+      toast.error('É necessário ter pelo menos uma bicicleta cadastrada para fazer um agendamento. Cadastre sua bike primeiro.');
+      navigate('/my-bike');
+      return;
+    }
+    
     setLoading(true);
     try {
       const appointmentPayload = {

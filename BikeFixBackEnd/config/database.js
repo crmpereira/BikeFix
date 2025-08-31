@@ -42,4 +42,4 @@ process.on('SIGINT', async () => {
   }
 });
 
-module.exports = connectDB;
+module.exports = { connectDB };

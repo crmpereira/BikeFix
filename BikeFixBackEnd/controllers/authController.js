@@ -54,7 +54,12 @@ const register = async (req, res) => {
         status: 'pending' // Oficinas precisam ser aprovadas
       };
     } else if (userType === 'cyclist' && cyclistData) {
-      userData.cyclistData = cyclistData;
+      console.log('Dados do ciclista recebidos:', cyclistData);
+      userData.cyclistData = {
+        ...cyclistData,
+        bikes: cyclistData.bikes || []
+      };
+      console.log('Dados do ciclista processados:', userData.cyclistData);
     }
 
     const user = new User(userData);

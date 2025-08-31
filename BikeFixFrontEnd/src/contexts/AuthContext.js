@@ -116,7 +116,8 @@ export const AuthProvider = ({ children }) => {
       } else if (userData.userType === 'cyclist') {
         formattedData.cyclistData = {
           bikeType: userData.bikeType,
-          experience: userData.experience
+          experience: userData.experience,
+          bikes: userData.bikes || []
         };
       }
 
