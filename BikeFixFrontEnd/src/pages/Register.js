@@ -51,7 +51,6 @@ const Register = () => {
     phone: '',
     userType: searchParams.get('type') || 'cyclist',
     // Campos específicos para ciclistas
-    bikeType: '',
     experience: '',
     // Campos para bicicletas do ciclista
     bikes: [],
@@ -439,17 +438,6 @@ const Register = () => {
         if (formData.userType === 'cyclist') {
           return (
             <>
-              <TextField
-                margin="normal"
-                fullWidth
-                id="bikeType"
-                label="Tipo de Bike"
-                name="bikeType"
-                value={formData.bikeType}
-                onChange={handleChange}
-                helperText="Ex: Mountain Bike, Speed, Urbana, etc."
-              />
-              
               <FormControl component="fieldset" sx={{ mt: 2, width: '100%' }}>
                 <FormLabel component="legend">Nível de Experiência</FormLabel>
                 <RadioGroup
