@@ -50,7 +50,9 @@ import {
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import workshopService from '../services/workshopService';
-import WorkshopMap from '../components/WorkshopMap';
+import { geocodeCEP } from '../services/geocodingService';
+import { validateCEP } from '../services/cepService';
+import LeafletMap from '../components/LeafletMap';
 import { toast } from 'react-toastify';
 
 const WorkshopSearch = () => {
@@ -58,6 +60,7 @@ const WorkshopSearch = () => {
     search: '',
     city: '',
     state: '',
+    cep: '',
     minRating: 0,
     maxDistance: 50,
     services: [],
@@ -149,9 +152,65 @@ const WorkshopSearch = () => {
     }
   }, [filters, initialLoad]);
 
+  // Função para buscar por CEP
+  const searchByCEP = async (cep) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      if (!validateCEP(cep)) {
+        toast.error('CEP inválido. Use o formato 12345-678');
+        return;
+      }
+      
+      console.log('🔍 Buscando coordenadas para CEP:', cep);
+      const coordinates = await geocodeCEP(cep);
+      
+      if (coordinates) {
+        console.log('📍 Coordenadas encontradas:', coordinates);
+        
+        // Atualizar localização do usuário com as coordenadas do CEP
+        setUserLocation({
+          lat: coordinates.lat,
+          lng: coordinates.lng
+        });
+        
+        // Buscar oficinas próximas às coordenadas do CEP
+        const searchFilters = {
+          search: filters.search,
+          city: filters.city,
+          state: filters.state,
+          minRating: filters.minRating,
+          minPrice: filters.minPrice,
+          maxPrice: filters.maxPrice,
+          services: filters.services,
+          radius: filters.maxDistance,
+          lat: coordinates.lat,
+          lng: coordinates.lng
+        };
+        
+        loadWorkshops(searchFilters);
+        toast.success('Localização encontrada! Buscando oficinas próximas...');
+      } else {
+        toast.error('Não foi possível encontrar a localização para este CEP');
+      }
+    } catch (error) {
+      console.error('Erro ao buscar por CEP:', error);
+      toast.error('Erro ao buscar localização do CEP');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSearch = () => {
     console.log('🔍 Botão BUSCAR pressionado');
     console.log('📋 Filtros atuais:', filters);
+    
+    // Se há um CEP preenchido, buscar por CEP
+    if (filters.cep && filters.cep.length >= 8) {
+      searchByCEP(filters.cep);
+      return;
+    }
     
     const searchFilters = {
       search: filters.search,
@@ -313,7 +372,7 @@ const WorkshopSearch = () => {
             />
           </Grid>
           
-          <Grid item xs={12} md={3}>
+          <Grid item xs={12} md={2}>
             <TextField
               fullWidth
               label="Localização"
@@ -330,7 +389,30 @@ const WorkshopSearch = () => {
             />
           </Grid>
           
-          <Grid item xs={12} md={3}>
+          <Grid item xs={12} md={2}>
+            <TextField
+              fullWidth
+              label="CEP"
+              value={filters.cep || ''}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, '');
+                const formattedCEP = value.length > 5 ? `${value.slice(0, 5)}-${value.slice(5, 8)}` : value;
+                setFilters({ ...filters, cep: formattedCEP });
+              }}
+              size="medium"
+              placeholder="12345-678"
+              inputProps={{ maxLength: 9 }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LocationOn />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+          
+          <Grid item xs={12} md={2}>
             <FormControl fullWidth>
               <InputLabel>Tipo de Serviço</InputLabel>
               <Select
@@ -369,6 +451,7 @@ const WorkshopSearch = () => {
                     search: '',
                     city: '',
                     state: '',
+                    cep: '',
                     minRating: 0,
                     maxDistance: 50,
                     services: [],
@@ -663,12 +746,13 @@ const WorkshopSearch = () => {
         </Grid>
       ) : (
         <Box sx={{ height: '600px', width: '100%', mb: 3 }}>
-          <WorkshopMap 
+          <LeafletMap 
             workshops={filteredWorkshops}
             userLocation={userLocation}
             onWorkshopSelect={(workshop) => {
               console.log('Oficina selecionada:', workshop);
             }}
+            height="600px"
           />
         </Box>
       )}

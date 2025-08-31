@@ -116,7 +116,12 @@ export const AuthProvider = ({ children }) => {
       } else if (userData.userType === 'cyclist') {
         formattedData.cyclistData = {
           bikeType: userData.bikeType,
-          experience: userData.experience,
+          address: {
+            street: userData.address,
+            city: userData.city,
+            state: userData.state,
+            zipCode: userData.zipCode
+          },
           bikes: userData.bikes || []
         };
       }

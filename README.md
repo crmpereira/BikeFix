@@ -1,52 +1,95 @@
-# BikeFix 🚴‍♂️
-
-Plataforma digital que conecta ciclistas a oficinas especializadas em bicicletas, facilitando agendamentos, orçamentos e manutenções.
+# 🚴‍♂️ BikeFix - Plataforma de Manutenção de Bicicletas
 
 ## 📋 Sobre o Projeto
 
-O BikeFix é uma solução completa que permite:
-- **Para Ciclistas**: Encontrar oficinas próximas, agendar serviços, acompanhar manutenções
-- **Para Oficinas**: Gerenciar agenda, criar orçamentos, histórico de clientes
-- **Para Administradores**: Supervisionar plataforma, relatórios, gestão de oficinas
+BikeFix é uma plataforma MVP que conecta ciclistas com oficinas especializadas em manutenção de bicicletas. O sistema permite agendamentos online, gerenciamento de serviços e avaliações.
 
-## 🏗️ Estrutura do Projeto
+## 🏗️ Arquitetura
+
+- **Frontend**: React.js com Material-UI
+- **Backend**: Node.js com Express
+- **Banco de Dados**: MongoDB Atlas
+- **Deploy**: Render (Backend + Frontend)
+
+## 📁 Estrutura do Projeto
 
 ```
 BikeFix/
-├── BikeFixBackEnd/     # API Node.js + Express + MongoDB
-├── BikeFixFrontEnd/    # Interface React
-└── README.md           # Este arquivo
+├── BikeFixBackEnd/          # API Node.js
+│   ├── controllers/         # Controladores da API
+│   ├── models/             # Modelos do MongoDB
+│   ├── routes/             # Rotas da API
+│   ├── middleware/         # Middlewares
+│   ├── config/             # Configurações
+│   ├── server.js           # Servidor de desenvolvimento
+│   ├── server-production.js # Servidor de produção
+│   └── package.json
+├── BikeFixFrontEnd/        # Aplicação React
+│   ├── src/
+│   │   ├── components/     # Componentes React
+│   │   ├── pages/          # Páginas da aplicação
+│   │   ├── services/       # Serviços de API
+│   │   ├── contexts/       # Contextos React
+│   │   └── utils/          # Utilitários
+│   └── package.json
+└── docs/                   # Documentação
 ```
 
-## 🚀 Tecnologias Utilizadas
-
-### Backend
-- **Node.js** + **Express.js**
-- **MongoDB** + **Mongoose**
-- **JWT** para autenticação
-- **bcryptjs** para hash de senhas
-- **Nodemailer** para envio de emails
-- **Swagger** para documentação da API
-
-### Frontend
-- **React.js**
-- **React Router** para navegação
-- **Axios** para requisições HTTP
-- **CSS3** responsivo
-
-## 📦 Instalação e Execução
+## 🚀 Deploy em Produção
 
 ### Pré-requisitos
-- Node.js (v14 ou superior)
-- MongoDB Atlas ou MongoDB local
-- Git
+
+1. **MongoDB Atlas**: Cluster configurado ([Guia](./MONGODB_ATLAS_SETUP.md))
+2. **Render Account**: Conta gratuita no [Render](https://render.com)
+3. **GitHub**: Repositório público ou privado
+
+### 1️⃣ Deploy do Backend
+
+1. **No Render Dashboard:**
+   - New → Web Service
+   - Connect Repository: `BikeFix`
+   - Configure:
+     - **Name**: `bikefix-backend`
+     - **Root Directory**: `BikeFixBackEnd`
+     - **Build Command**: `npm install`
+     - **Start Command**: `npm run start:prod`
+
+2. **Environment Variables:**
+   ```env
+   NODE_ENV=production
+   PORT=10000
+   MONGODB_URI=mongodb+srv://bikefix-app:SUA_SENHA@cluster.mongodb.net/bikefix
+   JWT_SECRET=sua_chave_jwt_super_secreta_com_32_caracteres
+   JWT_EXPIRE=7d
+   FRONTEND_URL=https://bikefix-frontend.onrender.com
+   EMAIL_HOST=smtp.gmail.com
+   EMAIL_PORT=587
+   EMAIL_USER=seu-email@gmail.com
+   EMAIL_PASS=sua-senha-app
+   ```
+
+### 2️⃣ Deploy do Frontend
+
+1. **No Render Dashboard:**
+   - New → Static Site
+   - Connect Repository: `BikeFix`
+   - Configure:
+     - **Name**: `bikefix-frontend`
+     - **Root Directory**: `BikeFixFrontEnd`
+     - **Build Command**: `npm install && npm run build`
+     - **Publish Directory**: `build`
+
+2. **Environment Variables:**
+   ```env
+   REACT_APP_API_URL=https://bikefix-backend.onrender.com/api
+   ```
 
 ### Backend
 ```bash
 cd BikeFixBackEnd
 npm install
-# Configure o arquivo .env com suas credenciais
 npm run dev
+# Servidor rodando em http://localhost:5000
 ```
 
 ### Frontend
@@ -54,7 +97,98 @@ npm run dev
 cd BikeFixFrontEnd
 npm install
 npm start
+# Aplicação rodando em http://localhost:3000
 ```
+
+## ✨ Funcionalidades
+
+### Para Ciclistas
+- ✅ Cadastro e autenticação
+- ✅ Busca de oficinas por localização
+- ✅ Agendamento de serviços
+- ✅ Gerenciamento de bicicletas
+- ✅ Histórico de serviços
+- ✅ Sistema de avaliações
+
+### Para Oficinas
+- ✅ Cadastro e perfil completo
+- ✅ Gerenciamento de agenda
+- ✅ Controle de serviços oferecidos
+- ✅ Histórico de atendimentos
+- ✅ Dashboard administrativo
+
+## 🔒 Segurança
+
+- **Autenticação JWT** com refresh tokens
+- **Hash de senhas** com bcrypt
+- **Rate limiting** para APIs
+- **Validação de dados** no backend
+- **CORS** configurado para produção
+- **Helmet.js** para headers de segurança
+- **Variáveis de ambiente** para credenciais
+
+## 📊 Monitoramento
+
+- **Health Check**: `/api/health`
+- **Logs estruturados** com Morgan
+- **Error handling** centralizado
+- **MongoDB Atlas** monitoring integrado
+
+## 🌐 URLs de Produção
+
+- **Frontend**: https://bikefix-frontend.onrender.com
+- **Backend API**: https://bikefix-backend.onrender.com/api
+- **Documentação**: https://bikefix-backend.onrender.com/api-docs
+
+## 🛠️ Troubleshooting
+
+### Problemas Comuns
+
+**1. Erro de conexão com MongoDB**
+```bash
+# Verifique se a URI está correta no .env
+# Confirme se o IP está na whitelist do Atlas
+```
+
+**2. CORS Error no Frontend**
+```bash
+# Verifique se FRONTEND_URL está configurado no backend
+# Confirme se REACT_APP_API_URL aponta para o backend correto
+```
+
+**3. Deploy falha no Render**
+```bash
+# Verifique os logs no Render Dashboard
+# Confirme se todas as variáveis de ambiente estão configuradas
+# Verifique se os comandos de build estão corretos
+```
+
+## 🚀 Tecnologias
+
+### Backend
+- Node.js + Express.js
+- MongoDB + Mongoose
+- JWT + Bcrypt
+- Multer + Nodemailer
+
+### Frontend
+- React.js + Material-UI
+- Axios + React Router
+- Context API
+
+## 📞 Suporte
+
+Para dúvidas ou problemas:
+1. Verifique a documentação
+2. Consulte os logs de erro
+3. Abra uma issue no GitHub
+
+## 📦 Instalação e Execução
+
+### Pré-requisitos
+- Node.js (v14 ou superior)
+- MongoDB Atlas ou MongoDB local
+- Git
 
 ## 🔧 Configuração
 

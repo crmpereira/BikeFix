@@ -144,7 +144,7 @@ const Footer = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <LocationOn fontSize="small" />
                 <Typography variant="body2">
-                  São Paulo, SP
+                  Joinville, SC
                 </Typography>
               </Box>
             </Box>

@@ -36,6 +36,8 @@ import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-d
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-toastify';
 import ServiceSelector from '../components/ServiceSelector';
+import { validateCEP } from '../services/cepService';
+import { geocodeCEP } from '../services/geocodingService';
 
 const Register = () => {
   const { register, isAuthenticated } = useAuth();
@@ -51,7 +53,6 @@ const Register = () => {
     phone: '',
     userType: searchParams.get('type') || 'cyclist',
     // Campos específicos para ciclistas
-    experience: '',
     // Campos para bicicletas do ciclista
     bikes: [],
     // Campos específicos para oficinas
@@ -70,7 +71,7 @@ const Register = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const steps = formData.userType === 'cyclist' 
-    ? ['Informações Básicas', 'Dados Específicos', 'Cadastro de Bikes', 'Confirmação']
+    ? ['Informações Básicas', 'Endereço', 'Cadastro de Bikes', 'Confirmação']
     : ['Informações Básicas', 'Dados Específicos', 'Confirmação'];
 
   // Redirecionar se já estiver autenticado
@@ -95,6 +96,39 @@ const Register = () => {
     } else {
       // Limita a 11 dígitos
       return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
+    }
+  };
+
+  // Função para aplicar máscara de CEP
+  const applyCEPMask = (value) => {
+    const numbers = value.replace(/\D/g, '');
+    if (numbers.length <= 5) {
+      return numbers;
+    } else {
+      return `${numbers.slice(0, 5)}-${numbers.slice(5, 8)}`;
+    }
+  };
+
+  // Função para buscar endereço por CEP
+  const searchByCEP = async (cep) => {
+    try {
+      if (!validateCEP(cep)) {
+        return;
+      }
+
+      const coordinates = await geocodeCEP(cep);
+      if (coordinates && coordinates.address) {
+        setFormData(prev => ({
+          ...prev,
+          address: coordinates.address.road || coordinates.address.street || '',
+          city: coordinates.address.city || coordinates.address.town || coordinates.address.village || '',
+          state: coordinates.address.state || ''
+        }));
+        toast.success('Endereço preenchido automaticamente!');
+      }
+    } catch (error) {
+      console.error('Erro ao buscar CEP:', error);
+      toast.error('Erro ao buscar CEP. Verifique o código e tente novamente.');
     }
   };
 
@@ -133,10 +167,20 @@ const Register = () => {
       processedValue = applyCnpjMask(value);
     }
     
+    // Aplicar máscara de CEP
+    if (name === 'zipCode') {
+      processedValue = applyCEPMask(value);
+    }
+    
     setFormData(prev => ({
       ...prev,
       [name]: processedValue,
     }));
+    
+    // Buscar endereço automaticamente quando CEP for preenchido completamente
+    if (name === 'zipCode' && processedValue.length === 9) {
+      searchByCEP(processedValue);
+    }
     
     // Limpar erro do campo quando usuário começar a digitar
     if (errors[name]) {
@@ -438,20 +482,61 @@ const Register = () => {
         if (formData.userType === 'cyclist') {
           return (
             <>
-              <FormControl component="fieldset" sx={{ mt: 2, width: '100%' }}>
-                <FormLabel component="legend">Nível de Experiência</FormLabel>
-                <RadioGroup
-                  aria-label="experience"
-                  name="experience"
-                  value={formData.experience}
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                id="zipCode"
+                label="CEP"
+                name="zipCode"
+                placeholder="00000-000"
+                value={formData.zipCode}
+                onChange={handleChange}
+                error={!!errors.zipCode}
+                helperText={errors.zipCode}
+                inputProps={{ maxLength: 9 }}
+              />
+              
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                id="address"
+                label="Endereço"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                error={!!errors.address}
+                helperText={errors.address}
+              />
+              
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <TextField
+                  margin="normal"
+                  required
+                  fullWidth
+                  id="city"
+                  label="Cidade"
+                  name="city"
+                  value={formData.city}
                   onChange={handleChange}
-                >
-                  <FormControlLabel value="beginner" control={<Radio />} label="Iniciante" />
-                  <FormControlLabel value="intermediate" control={<Radio />} label="Intermediário" />
-                  <FormControlLabel value="advanced" control={<Radio />} label="Avançado" />
-                  <FormControlLabel value="professional" control={<Radio />} label="Profissional" />
-                </RadioGroup>
-              </FormControl>
+                  error={!!errors.city}
+                  helperText={errors.city}
+                />
+                
+                <TextField
+                  margin="normal"
+                  required
+                  fullWidth
+                  id="state"
+                  label="Estado"
+                  name="state"
+                  value={formData.state}
+                  onChange={handleChange}
+                  error={!!errors.state}
+                  helperText={errors.state}
+                />
+              </Box>
             </>
           );
         } else {
