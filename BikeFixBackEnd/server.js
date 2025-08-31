@@ -6,7 +6,7 @@ const morgan = require('morgan');
 require('dotenv').config();
 
 // Importar configuração do banco e modelos
-const { connectDB } = require('./config/database-dev');
+const { connectDB } = require('./config/database');
 const { initializeDefaultData } = require('./models');
 const { swaggerUi, specs } = require('./config/swagger');
 

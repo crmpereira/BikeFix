@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const User = require('../models/User');
-const { connectDB } = require('../config/database-dev');
+const { connectDB } = require('../config/database');
 require('dotenv').config();
 
 // Dados das oficinas para popular o banco
