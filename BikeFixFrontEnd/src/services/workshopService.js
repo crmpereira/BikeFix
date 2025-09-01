@@ -6,10 +6,12 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api
 // Configurar axios para workshops
 const workshopAPI = axios.create({
   baseURL: `${API_BASE_URL}/workshops`,
-  timeout: 10000,
+  timeout: 30000, // Aumentar timeout para 30 segundos
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
+  withCredentials: false, // Desabilitar credentials para evitar problemas de CORS
 });
 
 // Interceptor para adicionar token se necessário

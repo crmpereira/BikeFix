@@ -144,8 +144,23 @@ const WorkshopSearch = () => {
       }
     } catch (error) {
       console.error('Erro ao carregar oficinas:', error);
-      setError(error.message || 'Erro ao carregar oficinas');
-      toast.error('Erro ao carregar oficinas');
+      
+      let errorMessage = 'Erro ao carregar oficinas. Tente novamente.';
+      
+      if (error.code === 'ECONNABORTED') {
+        errorMessage = 'Timeout na conexão. Verifique se o servidor está rodando na porta 5000.';
+      } else if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
+        errorMessage = 'Erro de rede. Verifique sua conexão com a internet.';
+      } else if (error.response) {
+        errorMessage = `Erro do servidor: ${error.response.status} - ${error.response.data?.message || 'Erro desconhecido'}`;
+      } else if (error.request) {
+        errorMessage = 'Servidor não está respondendo. Verifique se o backend está rodando na porta 5000.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
       setInitialLoad(false);
@@ -359,7 +374,7 @@ const WorkshopSearch = () => {
         setWorkshops(sortedWorkshops);
       }
     }
-  }, [sortBy, userLocation]); // Remover workshops das dependências para evitar loop
+  }, [workshops, sortBy, userLocation]); // Incluir workshops nas dependências
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
