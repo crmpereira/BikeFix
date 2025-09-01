@@ -46,7 +46,8 @@ const corsOptions = {
     'Accept',
     'Authorization',
     'Cache-Control',
-    'Pragma'
+    'Pragma',
+    'X-Cache-Control'
   ],
   exposedHeaders: ['Authorization']
 };
@@ -67,7 +68,7 @@ app.use((req, res, next) => {
   
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma');
+  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma, X-Cache-Control');
   res.setHeader('Access-Control-Expose-Headers', 'Authorization');
   
   if (req.method === 'OPTIONS') {
