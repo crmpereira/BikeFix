@@ -165,7 +165,7 @@ const WorkshopSearch = () => {
       setLoading(false);
       setInitialLoad(false);
     }
-  }, [filters, sortBy, userLocation]); // Manter dependências necessárias mas controlar execução
+  }, []); // Remover dependências que causam loop infinito
 
   // Função para buscar por CEP
   const searchByCEP = async (cep) => {
@@ -351,14 +351,14 @@ const WorkshopSearch = () => {
       // Carregar oficinas iniciais
       loadWorkshops();
     }
-  }, [initialLoad, loadWorkshops]); // Controlar execução com initialLoad
+  }, [initialLoad]); // Remover loadWorkshops das dependências para evitar loop
 
   // Quando a localização do usuário for obtida, buscar oficinas próximas automaticamente
   useEffect(() => {
-    if (userLocation && !searchingNearby) {
+    if (userLocation && !searchingNearby && initialLoad) {
       searchNearbyWorkshops();
     }
-  }, [userLocation, searchingNearby, searchNearbyWorkshops]);
+  }, [userLocation, searchingNearby, initialLoad]); // Remover searchNearbyWorkshops das dependências
 
   // Reordenar oficinas quando o critério de ordenação mudar
   useEffect(() => {
@@ -374,7 +374,7 @@ const WorkshopSearch = () => {
         setWorkshops(sortedWorkshops);
       }
     }
-  }, [workshops, sortBy, userLocation]); // Incluir workshops nas dependências
+  }, [sortBy, userLocation]); // Remover workshops das dependências para evitar loop
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
