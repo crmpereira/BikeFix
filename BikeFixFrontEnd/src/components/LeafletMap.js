@@ -33,15 +33,30 @@ L.Icon.Default.mergeOptions({
 // Ícone customizado para oficinas
 const workshopIcon = new L.Icon({
   iconUrl: 'data:image/svg+xml;base64,' + btoa(`
-    <svg width="25" height="41" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg">
-      <path fill="#1976d2" stroke="#fff" stroke-width="2" d="M12.5 0C5.6 0 0 5.6 0 12.5c0 12.5 12.5 28.5 12.5 28.5s12.5-16 12.5-28.5C25 5.6 19.4 0 12.5 0z"/>
-      <circle fill="#fff" cx="12.5" cy="12.5" r="6"/>
-      <path fill="#1976d2" d="M12.5 7l-2 2h4l-2-2zm-3 4h6v6h-6v-6z"/>
+    <svg width="30" height="45" viewBox="0 0 30 45" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#1976d2" stroke="#fff" stroke-width="2" d="M15 0C6.7 0 0 6.7 0 15c0 15 15 30 15 30s15-15 15-30C30 6.7 23.3 0 15 0z"/>
+      <circle fill="#fff" cx="15" cy="15" r="8"/>
+      <path fill="#1976d2" d="M15 8l-3 3h6l-3-3zm-4 5h8v8h-8v-8z"/>
+      <circle fill="#4caf50" cx="24" cy="6" r="4" stroke="#fff" stroke-width="1"/>
     </svg>
   `),
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
+  iconSize: [30, 45],
+  iconAnchor: [15, 45],
+  popupAnchor: [1, -40],
+});
+
+// Ícone para oficinas com alta avaliação
+const premiumWorkshopIcon = new L.Icon({
+  iconUrl: 'data:image/svg+xml;base64,' + btoa(`
+    <svg width="30" height="45" viewBox="0 0 30 45" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#ff9800" stroke="#fff" stroke-width="2" d="M15 0C6.7 0 0 6.7 0 15c0 15 15 30 15 30s15-15 15-30C30 6.7 23.3 0 15 0z"/>
+      <circle fill="#fff" cx="15" cy="15" r="8"/>
+      <path fill="#ff9800" d="M15 6l2 4h4l-3 3 1 4-4-2-4 2 1-4-3-3h4l2-4z"/>
+    </svg>
+  `),
+  iconSize: [30, 45],
+  iconAnchor: [15, 45],
+  popupAnchor: [1, -40],
 });
 
 // Ícone para localização do usuário
@@ -200,11 +215,14 @@ const LeafletMap = ({
             return null;
           }
           
+          // Escolher ícone baseado na avaliação
+          const icon = workshop.rating >= 4.5 ? premiumWorkshopIcon : workshopIcon;
+          
           return (
             <Marker
               key={workshop.id}
               position={[workshop.coordinates.lat, workshop.coordinates.lng]}
-              icon={workshopIcon}
+              icon={icon}
               eventHandlers={{
                 click: () => {
                   if (onWorkshopSelect) {
@@ -213,26 +231,44 @@ const LeafletMap = ({
                 }
               }}
             >
-              <Popup maxWidth={300}>
-                <Card sx={{ minWidth: 250, boxShadow: 'none' }}>
-                  <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32 }}>
+              <Popup maxWidth={320}>
+                <Card sx={{ minWidth: 280, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', borderRadius: 2 }}>
+                  <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                      <Avatar sx={{ 
+                        bgcolor: workshop.rating >= 4.5 ? '#ff9800' : 'primary.main', 
+                        width: 36, 
+                        height: 36 
+                      }}>
                         <Build fontSize="small" />
                       </Avatar>
                       <Box sx={{ flex: 1 }}>
-                        <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
+                        <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 700, mb: 0.5 }}>
                           {workshop.name}
                         </Typography>
-                        {workshop.verified && (
-                          <Chip
-                            icon={<Verified />}
-                            label="Verificada"
-                            size="small"
-                            color="success"
-                            sx={{ height: 20, fontSize: '0.7rem' }}
-                          />
-                        )}
+                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                          {workshop.verified && (
+                            <Chip
+                              icon={<Verified />}
+                              label="Verificada"
+                              size="small"
+                              color="success"
+                              sx={{ height: 22, fontSize: '0.75rem' }}
+                            />
+                          )}
+                          {workshop.rating >= 4.5 && (
+                            <Chip
+                              label="⭐ Premium"
+                              size="small"
+                              sx={{ 
+                                height: 22, 
+                                fontSize: '0.75rem',
+                                bgcolor: '#fff3e0',
+                                color: '#f57c00'
+                              }}
+                            />
+                          )}
+                        </Box>
                       </Box>
                     </Box>
                     
@@ -241,6 +277,20 @@ const LeafletMap = ({
                       <Typography variant="body2" color="text.secondary">
                         {workshop.city}, {workshop.state}
                       </Typography>
+                      {workshop.distance && (
+                        <Chip
+                          label={`${workshop.distance.toFixed(1)} km`}
+                          size="small"
+                          variant="outlined"
+                          sx={{ 
+                            height: 20, 
+                            fontSize: '0.7rem',
+                            ml: 'auto',
+                            borderColor: '#2196f3',
+                            color: '#2196f3'
+                          }}
+                        />
+                      )}
                     </Box>
                     
                     {workshop.rating > 0 && (
@@ -257,9 +307,9 @@ const LeafletMap = ({
                     </Typography>
                     
                     {workshop.services && workshop.services.length > 0 && (
-                      <Box sx={{ mb: 1 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 500, mb: 0.5 }}>
-                          Serviços:
+                      <Box sx={{ mb: 1.5 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.8, color: 'text.primary' }}>
+                          🔧 Serviços Principais:
                         </Typography>
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                           {workshop.services.slice(0, 3).map((service, index) => (
@@ -267,32 +317,88 @@ const LeafletMap = ({
                               key={index}
                               label={service.name}
                               size="small"
-                              variant="outlined"
-                              sx={{ fontSize: '0.7rem', height: 20 }}
+                              variant="filled"
+                              sx={{ 
+                                fontSize: '0.7rem', 
+                                height: 22,
+                                bgcolor: '#e3f2fd',
+                                color: '#1976d2',
+                                '&:hover': { bgcolor: '#bbdefb' }
+                              }}
                             />
                           ))}
                           {workshop.services.length > 3 && (
                             <Chip
-                              label={`+${workshop.services.length - 3}`}
+                              label={`+${workshop.services.length - 3} mais`}
                               size="small"
                               variant="outlined"
-                              sx={{ fontSize: '0.7rem', height: 20 }}
+                              sx={{ 
+                                fontSize: '0.7rem', 
+                                height: 22,
+                                borderColor: '#1976d2',
+                                color: '#1976d2'
+                              }}
                             />
                           )}
                         </Box>
                       </Box>
                     )}
                     
-                    <Button
-                      component={Link}
-                      to={`/workshop/${workshop.id}`}
-                      variant="contained"
-                      size="small"
-                      fullWidth
-                      sx={{ mt: 1 }}
-                    >
-                      Ver Detalhes
-                    </Button>
+                    {workshop.priceRange && (
+                      <Box sx={{ mb: 1.5 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5, color: 'text.primary' }}>
+                          💰 Faixa de Preço:
+                        </Typography>
+                        <Chip
+                          label={workshop.priceRange}
+                          size="small"
+                          sx={{
+                            bgcolor: '#e8f5e8',
+                            color: '#2e7d32',
+                            fontWeight: 600,
+                            fontSize: '0.75rem'
+                          }}
+                        />
+                      </Box>
+                    )}
+                    
+                    <Box sx={{ display: 'flex', gap: 1, mt: 1.5 }}>
+                      <Button
+                        component={Link}
+                        to={`/workshop/${workshop.id}`}
+                        variant="contained"
+                        size="small"
+                        sx={{ 
+                          flex: 1,
+                          bgcolor: '#1976d2',
+                          '&:hover': { bgcolor: '#1565c0' }
+                        }}
+                      >
+                        Ver Detalhes
+                      </Button>
+                      {workshop.coordinates && (
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => {
+                            const url = `https://www.google.com/maps/dir/?api=1&destination=${workshop.coordinates.lat},${workshop.coordinates.lng}`;
+                            window.open(url, '_blank');
+                          }}
+                          sx={{ 
+                            minWidth: 'auto',
+                            px: 1.5,
+                            borderColor: '#1976d2',
+                            color: '#1976d2',
+                            '&:hover': { 
+                              borderColor: '#1565c0',
+                              bgcolor: '#e3f2fd'
+                            }
+                          }}
+                        >
+                          🗺️
+                        </Button>
+                      )}
+                    </Box>
                   </CardContent>
                 </Card>
               </Popup>

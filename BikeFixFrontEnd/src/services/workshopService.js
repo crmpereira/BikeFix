@@ -242,6 +242,74 @@ const workshopService = {
     const closeTime = closeHour * 60 + closeMin;
     
     return currentTime >= openTime && currentTime <= closeTime;
+  },
+
+  // Calcular distância entre dois pontos geográficos (fórmula de Haversine)
+  calculateDistance(lat1, lng1, lat2, lng2) {
+    const R = 6371; // Raio da Terra em km
+    const dLat = this.toRadians(lat2 - lat1);
+    const dLng = this.toRadians(lng2 - lng1);
+    
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(this.toRadians(lat1)) * Math.cos(this.toRadians(lat2)) *
+              Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+    
+    return Math.round(distance * 10) / 10; // Arredondar para 1 casa decimal
+  },
+
+  // Converter graus para radianos
+  toRadians(degrees) {
+    return degrees * (Math.PI / 180);
+  },
+
+  // Ordenar oficinas por proximidade e outros critérios
+  sortWorkshopsByProximity(workshops, userLocation, sortBy = 'distance') {
+    if (!workshops || workshops.length === 0) return [];
+    
+    // Adicionar distância a cada oficina se a localização do usuário estiver disponível
+    const workshopsWithDistance = workshops.map(workshop => {
+      if (userLocation && workshop.coordinates && workshop.coordinates.lat && workshop.coordinates.lng) {
+        const distance = this.calculateDistance(
+          userLocation.lat,
+          userLocation.lng,
+          workshop.coordinates.lat,
+          workshop.coordinates.lng
+        );
+        return { ...workshop, distance };
+      }
+      return workshop;
+    });
+    
+    // Ordenar baseado no critério escolhido
+    return workshopsWithDistance.sort((a, b) => {
+      switch (sortBy) {
+        case 'distance':
+          // Oficinas sem distância vão para o final
+          if (a.distance === undefined && b.distance === undefined) return 0;
+          if (a.distance === undefined) return 1;
+          if (b.distance === undefined) return -1;
+          return a.distance - b.distance;
+          
+        case 'rating':
+          // Ordenar por avaliação (maior primeiro)
+          const ratingDiff = (b.rating || 0) - (a.rating || 0);
+          if (ratingDiff !== 0) return ratingDiff;
+          // Se avaliações iguais, ordenar por distância
+          if (a.distance !== undefined && b.distance !== undefined) {
+            return a.distance - b.distance;
+          }
+          return 0;
+          
+        case 'name':
+          return a.name.localeCompare(b.name);
+          
+        default:
+          return 0;
+      }
+    });
   }
 };
 

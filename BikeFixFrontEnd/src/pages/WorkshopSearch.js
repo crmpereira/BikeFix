@@ -88,9 +88,30 @@ const WorkshopSearch = () => {
 
   // Carregar oficinas ao montar o componente
   useEffect(() => {
-    loadWorkshops();
+    // Primeiro tentar obter localização do usuário
     getUserLocation();
+    // Carregar oficinas iniciais
+    loadWorkshops();
   }, [loadWorkshops]);
+
+  // Quando a localização do usuário for obtida, buscar oficinas próximas automaticamente
+  useEffect(() => {
+    if (userLocation && !searchingNearby) {
+      searchNearbyWorkshops();
+    }
+  }, [userLocation]);
+
+  // Reordenar oficinas quando o critério de ordenação mudar
+  useEffect(() => {
+    if (workshops.length > 0) {
+      const sortedWorkshops = workshopService.sortWorkshopsByProximity(
+        workshops,
+        userLocation,
+        sortBy
+      );
+      setWorkshops(sortedWorkshops);
+    }
+  }, [sortBy, userLocation]);
 
   const loadWorkshops = useCallback(async (searchFilters = {}) => {
     try {
@@ -134,8 +155,16 @@ const WorkshopSearch = () => {
         const formattedWorkshops = response.data.map(workshop => 
           workshopService.formatWorkshopForFrontend(workshop)
         );
-        console.log('✅ Oficinas formatadas:', formattedWorkshops.length, 'oficinas');
-        setWorkshops(formattedWorkshops);
+        
+        // Ordenar oficinas por proximidade se houver localização do usuário
+        const sortedWorkshops = workshopService.sortWorkshopsByProximity(
+          formattedWorkshops, 
+          userLocation, 
+          sortBy
+        );
+        
+        console.log('✅ Oficinas formatadas e ordenadas:', sortedWorkshops.length, 'oficinas');
+        setWorkshops(sortedWorkshops);
       } else {
         console.log('❌ Erro na resposta:', response.message);
         throw new Error(response.message || 'Erro ao carregar oficinas');
@@ -234,37 +263,15 @@ const WorkshopSearch = () => {
       
       // Filtro de distância (se disponível)
       if (workshop.distance && filters.maxDistance) {
-        const distanceValue = parseFloat(workshop.distance.replace(' km', ''));
+        const distanceValue = typeof workshop.distance === 'number' 
+          ? workshop.distance 
+          : parseFloat(workshop.distance.toString().replace(' km', ''));
         if (distanceValue > filters.maxDistance) return false;
       }
       
       return true;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'rating':
-          return b.rating - a.rating;
-        case 'distance':
-          if (a.distance && b.distance) {
-            const distA = parseFloat(a.distance.replace(' km', ''));
-            const distB = parseFloat(b.distance.replace(' km', ''));
-            return distA - distB;
-          }
-          return 0;
-        case 'price':
-          // Ordenar por menor preço (extrair valor mínimo da faixa de preços)
-          const getPriceValue = (priceRange) => {
-            if (!priceRange || priceRange === 'Consultar') return 999999;
-            const match = priceRange.match(/R\$ (\d+)/);
-            return match ? parseInt(match[1]) : 999999;
-          };
-          return getPriceValue(a.priceRange) - getPriceValue(b.priceRange);
-        case 'reviews':
-          return (b.ratingCount || 0) - (a.ratingCount || 0);
-        default:
-          return b.rating - a.rating;
-      }
     });
+    // Nota: A ordenação agora é feita pela função sortWorkshopsByProximity no serviço
 
   // Obter localização do usuário
   const getUserLocation = () => {
@@ -329,7 +336,15 @@ const WorkshopSearch = () => {
         const formattedWorkshops = response.data.map(workshop => 
           workshopService.formatWorkshopForFrontend(workshop)
         );
-        setWorkshops(formattedWorkshops);
+        
+        // Ordenar oficinas por proximidade
+        const sortedWorkshops = workshopService.sortWorkshopsByProximity(
+          formattedWorkshops, 
+          userLocation, 
+          'distance' // Para busca próxima, sempre ordenar por distância
+        );
+        
+        setWorkshops(sortedWorkshops);
       } else {
         setError(response.message || 'Erro ao buscar oficinas próximas');
       }
@@ -348,16 +363,154 @@ const WorkshopSearch = () => {
         Buscar Oficinas
       </Typography>
       
-      <Typography variant="h6" color="text.secondary" sx={{ mb: 4 }}>
+      <Typography variant="h6" color="text.secondary" sx={{ mb: 3 }}>
         Encontre a oficina perfeita para sua bike
       </Typography>
+
+      {/* Seção de Localização Automática */}
+      <Paper sx={{ 
+        p: 3, 
+        mb: 4,
+        borderRadius: 3,
+        background: 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)',
+        border: '1px solid #e1f5fe'
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <LocationOn sx={{ color: 'primary.main', fontSize: 28 }} />
+          <Typography variant="h6" sx={{ fontWeight: 700, color: '#1976d2' }}>
+            Localização Inteligente
+          </Typography>
+        </Box>
+        
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Encontre oficinas próximas a você automaticamente
+        </Typography>
+        
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: 2,
+          alignItems: 'center'
+        }}>
+          <Button
+            variant="contained"
+            size="large"
+            onClick={getUserLocation}
+            disabled={loading}
+            sx={{
+              borderRadius: 3,
+              textTransform: 'none',
+              fontWeight: 600,
+              py: 1.5,
+              px: 3,
+              background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #1565c0, #1976d2)',
+                transform: 'translateY(-1px)',
+                boxShadow: '0 4px 12px rgba(25,118,210,0.4)'
+              }
+            }}
+            startIcon={<LocationOn />}
+          >
+            🎯 Detectar Minha Localização
+          </Button>
+          
+          <Typography variant="body2" color="text.secondary" sx={{ mx: 2 }}>
+            ou
+          </Typography>
+          
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flex: 1 }}>
+            <TextField
+              label="Digite seu CEP"
+              value={filters.cep || ''}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, '');
+                const formattedCEP = value.length > 5 ? `${value.slice(0, 5)}-${value.slice(5, 8)}` : value;
+                setFilters({ ...filters, cep: formattedCEP });
+              }}
+              size="medium"
+              placeholder="12345-678"
+              inputProps={{ maxLength: 9 }}
+              sx={{ 
+                minWidth: '150px',
+                '& .MuiOutlinedInput-root': { borderRadius: 2 } 
+              }}
+            />
+            <Button
+              variant="outlined"
+              size="large"
+              onClick={() => filters.cep && searchByCEP(filters.cep)}
+              disabled={!filters.cep || loading}
+              sx={{
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 600,
+                py: 1.5,
+                px: 2
+              }}
+            >
+              🔍 Buscar
+            </Button>
+          </Box>
+        </Box>
+        
+        {/* Status da Localização */}
+        {userLocation && (
+          <Box sx={{ 
+            mt: 2, 
+            p: 2, 
+            bgcolor: 'success.light', 
+            borderRadius: 2,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
+          }}>
+            <Verified sx={{ color: 'success.dark' }} />
+            <Typography variant="body2" sx={{ color: 'success.dark', fontWeight: 600 }}>
+              ✅ Localização detectada! Mostrando oficinas próximas.
+            </Typography>
+          </Box>
+        )}
+        
+        {locationError && (
+          <Alert 
+            severity="warning" 
+            sx={{ mt: 2 }}
+            action={
+              <Button 
+                color="inherit" 
+                size="small" 
+                onClick={getUserLocation}
+                sx={{ textTransform: 'none' }}
+              >
+                Tentar Novamente
+              </Button>
+            }
+          >
+            {locationError}
+          </Alert>
+        )}
+      </Paper>
 
       {/* Filtros de Busca - Design Moderno */}
       <Paper sx={{ 
         p: { xs: 2, md: 3 }, 
         mb: 4,
-        borderRadius: 3,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+        borderRadius: 4,
+        background: 'linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%)',
+        border: '1px solid rgba(25, 118, 210, 0.08)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+        position: 'relative',
+        overflow: 'hidden',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '4px',
+          background: 'linear-gradient(90deg, #1976d2, #42a5f5, #64b5f6)'
+        }
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
           <Search sx={{ color: 'primary.main', fontSize: 28 }} />
@@ -688,12 +841,30 @@ const WorkshopSearch = () => {
               height: '100%', 
               display: 'flex', 
               flexDirection: 'column',
-              borderRadius: 3,
-              border: '1px solid #f0f0f0',
-              transition: 'all 0.3s ease',
+              borderRadius: 4,
+              background: 'linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%)',
+              border: '1px solid rgba(25, 118, 210, 0.08)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+              transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+              position: 'relative',
+              overflow: 'hidden',
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '4px',
+                background: workshop.rating >= 4.5 
+                  ? 'linear-gradient(90deg, #ff9800, #ffc107)'
+                  : 'linear-gradient(90deg, #1976d2, #42a5f5)'
+              },
               '&:hover': {
-                boxShadow: '0 8px 25px rgba(0,0,0,0.12)',
-                transform: 'translateY(-4px)'
+                transform: 'translateY(-8px) scale(1.02)',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.12)',
+                '& .workshop-avatar': {
+                  transform: 'scale(1.1) rotate(5deg)'
+                }
               }
             }}>
               <CardContent sx={{ flexGrow: 1, p: { xs: 2, sm: 3 } }}>
@@ -704,16 +875,22 @@ const WorkshopSearch = () => {
                   mb: 2,
                   gap: 2
                 }}>
-                  <Box sx={{
-                    width: { xs: 50, sm: 60 },
-                    height: { xs: 50, sm: 60 },
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
+                  <Box 
+                    className="workshop-avatar"
+                    sx={{
+                      width: { xs: 56, sm: 64 },
+                      height: { xs: 56, sm: 64 },
+                      borderRadius: '50%',
+                      background: workshop.rating >= 4.5
+                        ? 'linear-gradient(135deg, #ff9800, #ffc107)'
+                        : 'linear-gradient(135deg, #1976d2, #42a5f5)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      transition: 'all 0.3s ease',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                    }}>
                     <Build sx={{ color: 'white', fontSize: { xs: 24, sm: 28 } }} />
                   </Box>
                   <Box sx={{ flexGrow: 1, minWidth: 0 }}>
@@ -758,9 +935,21 @@ const WorkshopSearch = () => {
                   display: 'flex', 
                   alignItems: 'flex-start', 
                   mb: 2,
-                  p: 1.5,
-                  bgcolor: '#f8f9fa',
-                  borderRadius: 2
+                  p: 2,
+                  background: 'linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%)',
+                  borderRadius: 3,
+                  border: '1px solid rgba(25, 118, 210, 0.1)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '4px',
+                    height: '100%',
+                    background: 'linear-gradient(180deg, #1976d2, #42a5f5)'
+                  }
                 }}>
                   <LocationOn sx={{ fontSize: 18, color: 'primary.main', mr: 1, mt: 0.2 }} />
                   <Box sx={{ flexGrow: 1 }}>
@@ -799,17 +988,24 @@ const WorkshopSearch = () => {
                   <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
                     🔧 Serviços Oferecidos:
                   </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                     {workshop.serviceNames.slice(0, 3).map((serviceName, index) => (
                       <Chip
                         key={index}
                         label={serviceName}
                         size="small"
                         sx={{
-                          bgcolor: '#e3f2fd',
+                          background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
                           color: '#1976d2',
-                          fontWeight: 500,
-                          '&:hover': { bgcolor: '#bbdefb' }
+                          fontWeight: 600,
+                          border: '1px solid rgba(25, 118, 210, 0.2)',
+                          borderRadius: 2,
+                          transition: 'all 0.3s ease',
+                          '&:hover': { 
+                            background: 'linear-gradient(135deg, #bbdefb 0%, #90caf9 100%)',
+                            transform: 'translateY(-2px)',
+                            boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)'
+                          }
                         }}
                       />
                     ))}
@@ -818,9 +1014,17 @@ const WorkshopSearch = () => {
                         label={`+${workshop.serviceNames.length - 3} mais`}
                         size="small"
                         sx={{
-                          bgcolor: '#fff3e0',
+                          background: 'linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%)',
                           color: '#f57c00',
-                          fontWeight: 600
+                          fontWeight: 700,
+                          border: '1px solid rgba(245, 124, 0, 0.2)',
+                          borderRadius: 2,
+                          transition: 'all 0.3s ease',
+                          '&:hover': {
+                            background: 'linear-gradient(135deg, #ffe0b2 0%, #ffcc02 100%)',
+                            transform: 'translateY(-2px)',
+                            boxShadow: '0 4px 12px rgba(245, 124, 0, 0.3)'
+                          }
                         }}
                       />
                     )}
@@ -832,10 +1036,22 @@ const WorkshopSearch = () => {
                   display: 'flex', 
                   justifyContent: 'space-between', 
                   alignItems: 'center',
-                  p: 1.5,
-                  bgcolor: '#f5f5f5',
-                  borderRadius: 2,
-                  mb: 2
+                  p: 2,
+                  background: 'linear-gradient(135deg, #e8f5e8 0%, #f1f8e9 100%)',
+                  borderRadius: 3,
+                  mb: 2,
+                  border: '1px solid rgba(76, 175, 80, 0.1)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: '3px',
+                    background: 'linear-gradient(90deg, #4caf50, #8bc34a)'
+                  }
                 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography variant="body2" color="success.main" sx={{ fontWeight: 700, fontSize: '0.9rem' }}>
@@ -858,19 +1074,42 @@ const WorkshopSearch = () => {
                   component={Link}
                   to={`/workshops/${workshop.id}`}
                   sx={{
-                    borderRadius: 2,
+                    borderRadius: 3,
                     textTransform: 'none',
-                    fontWeight: 600,
-                    py: 1.2,
-                    background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
+                    fontWeight: 700,
+                    py: 1.5,
+                    fontSize: '1rem',
+                    background: workshop.rating >= 4.5
+                      ? 'linear-gradient(135deg, #ff9800 0%, #ffc107 50%, #ffeb3b 100%)'
+                      : 'linear-gradient(135deg, #1976d2 0%, #42a5f5 50%, #64b5f6 100%)',
+                    boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: '-100%',
+                      width: '100%',
+                      height: '100%',
+                      background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+                      transition: 'left 0.6s ease'
+                    },
                     '&:hover': {
-                      background: 'linear-gradient(135deg, #1565c0, #1976d2)',
-                      transform: 'translateY(-1px)',
-                      boxShadow: '0 4px 12px rgba(25,118,210,0.4)'
+                      background: workshop.rating >= 4.5
+                        ? 'linear-gradient(135deg, #f57c00 0%, #ff9800 50%, #ffc107 100%)'
+                        : 'linear-gradient(135deg, #1565c0 0%, #1976d2 50%, #42a5f5 100%)',
+                      transform: 'translateY(-3px) scale(1.02)',
+                      boxShadow: '0 12px 30px rgba(0,0,0,0.25)',
+                      '&::before': {
+                        left: '100%'
+                      }
                     }
                   }}
                 >
-                  🔍 Ver Detalhes
+                  {workshop.rating >= 4.5 ? '⭐ Ver Oficina Premium' : '🔍 Ver Detalhes'}
                 </Button>
               </CardActions>
               </Card>
