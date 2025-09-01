@@ -334,7 +334,7 @@ const Dashboard = () => {
                   <Button
                     variant="contained"
                     component={Link}
-                    to="/workshop-search"
+                    to="/workshops"
                     size="small"
                     fullWidth
                     sx={{ 
@@ -649,7 +649,7 @@ const Dashboard = () => {
                 <Button
                   variant="contained"
                   component={Link}
-                  to="/workshop-search"
+                  to="/workshops"
                   size="large"
                   sx={{
                     borderRadius: 3,
@@ -786,7 +786,7 @@ const Dashboard = () => {
                 <Button
                   variant="contained"
                   component={Link}
-                  to="/workshop-search"
+                  to="/workshops"
                   size="small"
                   sx={{
                     borderRadius: 2,
