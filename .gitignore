@@ -41,6 +41,18 @@ pids
 *.seed
 *.pid.lock
 
+# Development and test scripts
+test-*.js
+populate-*.js
+clear-*.js
+verify-*.js
+view-*.js
+add-*.js
+recreate-*.js
+*-workshops.js
+*-workshops.json
+*-mongodb-script.js
+
 # Coverage directory used by tools like istanbul
 coverage/
 
