@@ -92,10 +92,10 @@ const WorkshopSearch = () => {
       setLoading(true);
       setError(null);
       
-      // Combinar filtros atuais com filtros de busca
+      // Usar filtros passados como parâmetro ou filtros padrão
+      const currentFilters = Object.keys(searchFilters).length > 0 ? searchFilters : filters;
       const apiFilters = {
-        ...filters,
-        ...searchFilters
+        ...currentFilters
       };
       
       // Remover filtros vazios e valores padrão
@@ -133,7 +133,7 @@ const WorkshopSearch = () => {
         const sortedWorkshops = workshopService.sortWorkshopsByProximity(
           formattedWorkshops, 
           userLocation, 
-          sortBy
+          sortBy || 'rating'
         );
         
         console.log('✅ Oficinas formatadas e ordenadas:', sortedWorkshops.length, 'oficinas');
@@ -148,11 +148,9 @@ const WorkshopSearch = () => {
       toast.error('Erro ao carregar oficinas');
     } finally {
       setLoading(false);
-      if (initialLoad) {
-        setInitialLoad(false);
-      }
+      setInitialLoad(false);
     }
-  }, [filters, initialLoad, sortBy, userLocation]);
+  }, [filters, sortBy, userLocation]); // Manter dependências necessárias mas controlar execução
 
   // Função para buscar por CEP
   const searchByCEP = async (cep) => {
@@ -332,11 +330,13 @@ const WorkshopSearch = () => {
 
   // Carregar oficinas ao montar o componente
   useEffect(() => {
-    // Primeiro tentar obter localização do usuário
-    getUserLocation();
-    // Carregar oficinas iniciais
-    loadWorkshops();
-  }, [loadWorkshops]);
+    if (initialLoad) {
+      // Primeiro tentar obter localização do usuário
+      getUserLocation();
+      // Carregar oficinas iniciais
+      loadWorkshops();
+    }
+  }, [initialLoad, loadWorkshops]); // Controlar execução com initialLoad
 
   // Quando a localização do usuário for obtida, buscar oficinas próximas automaticamente
   useEffect(() => {
@@ -353,9 +353,13 @@ const WorkshopSearch = () => {
         userLocation,
         sortBy
       );
-      setWorkshops(sortedWorkshops);
+      // Só atualizar se a ordem realmente mudou
+      const workshopsChanged = JSON.stringify(workshops.map(w => w.id)) !== JSON.stringify(sortedWorkshops.map(w => w.id));
+      if (workshopsChanged) {
+        setWorkshops(sortedWorkshops);
+      }
     }
-  }, [sortBy, userLocation, workshops]);
+  }, [sortBy, userLocation]); // Remover workshops das dependências para evitar loop
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
