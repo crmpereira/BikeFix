@@ -31,11 +31,51 @@ app.use(morgan('combined'));
 
 // CORS configurado para produção
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'https://bikefix-frontend.onrender.com',
+  origin: [
+    process.env.FRONTEND_URL || 'https://bikefix-frontend.onrender.com',
+    process.env.CORS_ORIGIN || 'https://bikefix-frontend.onrender.com',
+    'https://bikefix-frontend.onrender.com'
+  ],
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Origin',
+    'X-Requested-With',
+    'Content-Type',
+    'Accept',
+    'Authorization',
+    'Cache-Control',
+    'Pragma'
+  ],
+  exposedHeaders: ['Authorization']
 };
 app.use(cors(corsOptions));
+
+// Middleware adicional para CORS preflight
+app.use((req, res, next) => {
+  const allowedOrigins = [
+    process.env.FRONTEND_URL || 'https://bikefix-frontend.onrender.com',
+    process.env.CORS_ORIGIN || 'https://bikefix-frontend.onrender.com',
+    'https://bikefix-frontend.onrender.com'
+  ];
+  
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma');
+  res.setHeader('Access-Control-Expose-Headers', 'Authorization');
+  
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
 
 // Middleware para parsing
 app.use(express.json({ limit: '10mb' }));
