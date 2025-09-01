@@ -1,0 +1,7 @@
+<svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
+  <rect width="192" height="192" fill="#1976d2" rx="24"/>
+  <circle cx="60" cy="120" r="25" fill="none" stroke="white" stroke-width="4"/>
+  <circle cx="132" cy="120" r="25" fill="none" stroke="white" stroke-width="4"/>
+  <path d="M60 120 L96 80 L132 120 M96 80 L96 60 M85 60 L107 60" stroke="white" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="96" y="160" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="16" font-weight="bold">BikeFix</text>
+</svg>
