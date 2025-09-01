@@ -86,33 +86,6 @@ const WorkshopSearch = () => {
     'Revisão Geral'
   ]);
 
-  // Carregar oficinas ao montar o componente
-  useEffect(() => {
-    // Primeiro tentar obter localização do usuário
-    getUserLocation();
-    // Carregar oficinas iniciais
-    loadWorkshops();
-  }, [loadWorkshops]);
-
-  // Quando a localização do usuário for obtida, buscar oficinas próximas automaticamente
-  useEffect(() => {
-    if (userLocation && !searchingNearby) {
-      searchNearbyWorkshops();
-    }
-  }, [userLocation]);
-
-  // Reordenar oficinas quando o critério de ordenação mudar
-  useEffect(() => {
-    if (workshops.length > 0) {
-      const sortedWorkshops = workshopService.sortWorkshopsByProximity(
-        workshops,
-        userLocation,
-        sortBy
-      );
-      setWorkshops(sortedWorkshops);
-    }
-  }, [sortBy, userLocation]);
-
   const loadWorkshops = useCallback(async (searchFilters = {}) => {
     try {
       console.log('🚀 Iniciando loadWorkshops com filtros:', searchFilters);
@@ -179,7 +152,7 @@ const WorkshopSearch = () => {
         setInitialLoad(false);
       }
     }
-  }, [filters, initialLoad]);
+  }, [filters, initialLoad, sortBy, userLocation]);
 
   // Função para buscar por CEP
   const searchByCEP = async (cep) => {
@@ -315,7 +288,7 @@ const WorkshopSearch = () => {
   };
 
   // Buscar oficinas próximas
-  const searchNearbyWorkshops = async () => {
+  const searchNearbyWorkshops = useCallback(async () => {
     if (!userLocation) {
       getUserLocation();
       return;
@@ -355,7 +328,34 @@ const WorkshopSearch = () => {
       setLoading(false);
       setSearchingNearby(false);
     }
-  };
+  }, [userLocation, filters.maxDistance]);
+
+  // Carregar oficinas ao montar o componente
+  useEffect(() => {
+    // Primeiro tentar obter localização do usuário
+    getUserLocation();
+    // Carregar oficinas iniciais
+    loadWorkshops();
+  }, [loadWorkshops]);
+
+  // Quando a localização do usuário for obtida, buscar oficinas próximas automaticamente
+  useEffect(() => {
+    if (userLocation && !searchingNearby) {
+      searchNearbyWorkshops();
+    }
+  }, [userLocation, searchingNearby, searchNearbyWorkshops]);
+
+  // Reordenar oficinas quando o critério de ordenação mudar
+  useEffect(() => {
+    if (workshops.length > 0) {
+      const sortedWorkshops = workshopService.sortWorkshopsByProximity(
+        workshops,
+        userLocation,
+        sortBy
+      );
+      setWorkshops(sortedWorkshops);
+    }
+  }, [sortBy, userLocation, workshops]);
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
