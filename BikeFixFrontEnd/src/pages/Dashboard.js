@@ -269,37 +269,80 @@ const Dashboard = () => {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600 }}>
-          Olá, {user?.name?.split(' ')[0] || 'Ciclista'}!
+    <Container maxWidth="lg" sx={{ py: { xs: 2, md: 4 } }}>
+      {/* Header com gradiente */}
+      <Box sx={{ 
+        mb: 4, 
+        p: { xs: 3, md: 4 },
+        background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+        borderRadius: 3,
+        color: 'white',
+        textAlign: { xs: 'center', md: 'left' }
+      }}>
+        <Typography variant="h4" component="h1" gutterBottom sx={{ 
+          fontWeight: 700,
+          fontSize: { xs: '1.8rem', md: '2.125rem' }
+        }}>
+          Olá, {user?.name?.split(' ')[0] || 'Ciclista'}! 👋
         </Typography>
-        <Typography variant="h6" color="text.secondary">
-          Bem-vindo ao seu painel de controle
+        <Typography variant="h6" sx={{ 
+          opacity: 0.9,
+          fontSize: { xs: '1rem', md: '1.25rem' }
+        }}>
+          Pronto para cuidar da sua bike hoje?
         </Typography>
       </Box>
 
       <Grid container spacing={3}>
-        {/* Cards de Ações Rápidas */}
+        {/* Cards de Ações Rápidas - Design Moderno */}
         <Grid item xs={12} md={8}>
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid item xs={6} sm={6} md={3}>
               <Card sx={{ 
-                textAlign: 'center', 
-                p: { xs: 1, sm: 2 },
-                minHeight: { xs: 120, sm: 140 }
+                textAlign: 'center',
+                minHeight: { xs: 140, sm: 160 },
+                background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
+                border: '1px solid #e3f2fd',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(25, 118, 210, 0.15)'
+                }
               }}>
-                <CardContent sx={{ p: { xs: 1, sm: 2 }, '&:last-child': { pb: { xs: 1, sm: 2 } } }}>
-                  <Search sx={{ fontSize: { xs: 32, sm: 40 }, color: 'primary.main', mb: 1 }} />
-                  <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '0.9rem', sm: '1.25rem' } }}>
+                <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                  <Box sx={{ 
+                    width: { xs: 50, sm: 60 }, 
+                    height: { xs: 50, sm: 60 },
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mx: 'auto',
+                    mb: 2
+                  }}>
+                    <Search sx={{ fontSize: { xs: 24, sm: 30 }, color: 'white' }} />
+                  </Box>
+                  <Typography variant="h6" gutterBottom sx={{ 
+                    fontSize: { xs: '0.9rem', sm: '1.1rem' },
+                    fontWeight: 600,
+                    color: '#1976d2'
+                  }}>
                     Buscar Oficinas
                   </Typography>
                   <Button
                     variant="contained"
                     component={Link}
-                    to="/workshops"
+                    to="/workshop-search"
                     size="small"
-                    sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                    fullWidth
+                    sx={{ 
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      fontWeight: 600
+                    }}
                   >
                     Buscar
                   </Button>
@@ -309,13 +352,36 @@ const Dashboard = () => {
             
             <Grid item xs={6} sm={6} md={3}>
               <Card sx={{ 
-                textAlign: 'center', 
-                p: { xs: 1, sm: 2 },
-                minHeight: { xs: 120, sm: 140 }
+                textAlign: 'center',
+                minHeight: { xs: 140, sm: 160 },
+                background: 'linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%)',
+                border: '1px solid #e8f5e8',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(76, 175, 80, 0.15)'
+                }
               }}>
-                <CardContent sx={{ p: { xs: 1, sm: 2 }, '&:last-child': { pb: { xs: 1, sm: 2 } } }}>
-                  <Add sx={{ fontSize: { xs: 32, sm: 40 }, color: 'primary.main', mb: 1 }} />
-                  <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '0.9rem', sm: '1.25rem' } }}>
+                <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                  <Box sx={{ 
+                    width: { xs: 50, sm: 60 }, 
+                    height: { xs: 50, sm: 60 },
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #4caf50, #66bb6a)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mx: 'auto',
+                    mb: 2
+                  }}>
+                    <Add sx={{ fontSize: { xs: 24, sm: 30 }, color: 'white' }} />
+                  </Box>
+                  <Typography variant="h6" gutterBottom sx={{ 
+                    fontSize: { xs: '0.9rem', sm: '1.1rem' },
+                    fontWeight: 600,
+                    color: '#4caf50'
+                  }}>
                     Novo Agendamento
                   </Typography>
                   <Button
@@ -323,7 +389,15 @@ const Dashboard = () => {
                     component={Link}
                     to="/appointment"
                     size="small"
-                    sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                    fullWidth
+                    sx={{ 
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      fontWeight: 600,
+                      bgcolor: '#4caf50',
+                      '&:hover': { bgcolor: '#45a049' }
+                    }}
                   >
                     Agendar
                   </Button>
@@ -331,17 +405,53 @@ const Dashboard = () => {
               </Card>
             </Grid>
             
-            <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ textAlign: 'center', p: 2 }}>
-                <CardContent>
-                  <History sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
-                  <Typography variant="h6" gutterBottom>
+            <Grid item xs={6} sm={6} md={3}>
+              <Card sx={{ 
+                textAlign: 'center',
+                minHeight: { xs: 140, sm: 160 },
+                background: 'linear-gradient(135deg, #fff3e0 0%, #ffcc02 100%)',
+                border: '1px solid #fff3e0',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(255, 152, 0, 0.15)'
+                }
+              }}>
+                <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                  <Box sx={{ 
+                    width: { xs: 50, sm: 60 }, 
+                    height: { xs: 50, sm: 60 },
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #ff9800, #ffb74d)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mx: 'auto',
+                    mb: 2
+                  }}>
+                    <History sx={{ fontSize: { xs: 24, sm: 30 }, color: 'white' }} />
+                  </Box>
+                  <Typography variant="h6" gutterBottom sx={{ 
+                    fontSize: { xs: '0.9rem', sm: '1.1rem' },
+                    fontWeight: 600,
+                    color: '#f57c00'
+                  }}>
                     Histórico
                   </Typography>
                   <Button
-                    variant="outlined"
+                    variant="contained"
                     size="small"
+                    fullWidth
                     onClick={() => navigate('/history')}
+                    sx={{ 
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      fontWeight: 600,
+                      bgcolor: '#ff9800',
+                      '&:hover': { bgcolor: '#f57c00' }
+                    }}
                   >
                     Ver Histórico
                   </Button>
@@ -351,17 +461,53 @@ const Dashboard = () => {
             
             {/* Seção Minha Bike - apenas para ciclistas */}
             {user?.userType === 'cyclist' && (
-              <Grid item xs={12} sm={6} md={3}>
-                <Card sx={{ textAlign: 'center', p: 2 }}>
-                  <CardContent>
-                    <Build sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
-                    <Typography variant="h6" gutterBottom>
+              <Grid item xs={6} sm={6} md={3}>
+                <Card sx={{ 
+                  textAlign: 'center',
+                  minHeight: { xs: 140, sm: 160 },
+                  background: 'linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%)',
+                  border: '1px solid #f3e5f5',
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 8px 25px rgba(156, 39, 176, 0.15)'
+                  }
+                }}>
+                  <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                    <Box sx={{ 
+                      width: { xs: 50, sm: 60 }, 
+                      height: { xs: 50, sm: 60 },
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #9c27b0, #ba68c8)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      mx: 'auto',
+                      mb: 2
+                    }}>
+                      <Build sx={{ fontSize: { xs: 24, sm: 30 }, color: 'white' }} />
+                    </Box>
+                    <Typography variant="h6" gutterBottom sx={{ 
+                      fontSize: { xs: '0.9rem', sm: '1.1rem' },
+                      fontWeight: 600,
+                      color: '#7b1fa2'
+                    }}>
                       Minha Bike
                     </Typography>
                     <Button
-                      variant="outlined"
+                      variant="contained"
                       size="small"
+                      fullWidth
                       onClick={() => navigate('/my-bike')}
+                      sx={{ 
+                        fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                        borderRadius: 2,
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        bgcolor: '#9c27b0',
+                        '&:hover': { bgcolor: '#7b1fa2' }
+                      }}
                     >
                       Gerenciar
                     </Button>
@@ -371,18 +517,34 @@ const Dashboard = () => {
             )}
           </Grid>
 
-          {/* Próximos Agendamentos */}
-          <Paper sx={{ p: 3, mb: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Próximos Agendamentos
-              </Typography>
-              <FormControl size="small" sx={{ minWidth: 150 }}>
-                <InputLabel>Status</InputLabel>
+          {/* Próximos Agendamentos - Design Moderno */}
+          <Paper sx={{ 
+            p: { xs: 2, md: 3 }, 
+            mb: 3,
+            borderRadius: 3,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: { xs: 'column', sm: 'row' },
+              justifyContent: 'space-between', 
+              alignItems: { xs: 'flex-start', sm: 'center' }, 
+              mb: 3,
+              gap: { xs: 2, sm: 0 }
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Schedule sx={{ color: 'primary.main', fontSize: 28 }} />
+                <Typography variant="h6" sx={{ fontWeight: 700, color: '#1976d2' }}>
+                  Próximos Agendamentos
+                </Typography>
+              </Box>
+              <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 150 } }}>
+                <InputLabel>Filtrar por Status</InputLabel>
                 <Select
                   value={statusFilter}
-                  label="Status"
+                  label="Filtrar por Status"
                   onChange={(e) => setStatusFilter(e.target.value)}
+                  sx={{ borderRadius: 2 }}
                 >
                   <MenuItem value="all">Todos</MenuItem>
                   <MenuItem value="pending">Pendente</MenuItem>
@@ -393,65 +555,111 @@ const Dashboard = () => {
                 </Select>
               </FormControl>
             </Box>
+            
             {filteredAppointments.length > 0 ? (
-              <List>
+              <Grid container spacing={2}>
                 {filteredAppointments.map((appointment) => (
-                  <ListItem key={appointment.id} divider>
-                    <ListItemIcon>
-                      {getStatusIcon(appointment.status)}
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-                            {appointment.workshop?.name || appointment.workshopName || 'Oficina'}
-                          </Typography>
-                          <Chip
-                            label={getStatusText(appointment.status)}
-                            color={getStatusColor(appointment.status)}
-                            size="small"
-                          />
+                  <Grid item xs={12} key={appointment.id}>
+                    <Card sx={{ 
+                      border: '1px solid #f0f0f0',
+                      borderRadius: 2,
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        boxShadow: '0 6px 20px rgba(0,0,0,0.1)',
+                        transform: 'translateY(-2px)'
+                      }
+                    }}>
+                      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                        <Box sx={{ 
+                          display: 'flex', 
+                          flexDirection: { xs: 'column', sm: 'row' },
+                          justifyContent: 'space-between',
+                          alignItems: { xs: 'flex-start', sm: 'center' },
+                          gap: 2
+                        }}>
+                          <Box sx={{ flex: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                              {getStatusIcon(appointment.status)}
+                              <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
+                                {appointment.workshop?.name || appointment.workshopName || 'Oficina'}
+                              </Typography>
+                              <Chip
+                                label={getStatusText(appointment.status)}
+                                color={getStatusColor(appointment.status)}
+                                size="small"
+                                sx={{ fontWeight: 600 }}
+                              />
+                            </Box>
+                            
+                            <Typography variant="body1" color="text.secondary" sx={{ mb: 0.5, fontWeight: 500 }}>
+                              🔧 {appointment.serviceType || appointment.service}
+                            </Typography>
+                            
+                            <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              📅 {new Date(appointment.appointmentDate || appointment.date).toLocaleDateString('pt-BR')} às {appointment.appointmentTime || appointment.time}
+                            </Typography>
+                          </Box>
+                          
+                          {appointmentService.canCancelAppointment(appointment) && (
+                            <IconButton
+                              color="error"
+                              onClick={() => handleCancelAppointment(appointment)}
+                              sx={{ 
+                                bgcolor: '#ffebee',
+                                '&:hover': { bgcolor: '#ffcdd2' },
+                                borderRadius: 2
+                              }}
+                            >
+                              <Delete />
+                            </IconButton>
+                          )}
                         </Box>
-                      }
-                      secondary={
-                        <>
-                          <Typography variant="body2" color="text.secondary">
-                            {appointment.serviceType || appointment.service}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {new Date(appointment.appointmentDate || appointment.date).toLocaleDateString('pt-BR')} às {appointment.appointmentTime || appointment.time}
-                          </Typography>
-                        </>
-                      }
-                    />
-                    {appointmentService.canCancelAppointment(appointment) && (
-                      <IconButton
-                        edge="end"
-                        color="error"
-                        onClick={() => handleCancelAppointment(appointment)}
-                        sx={{ ml: 1 }}
-                      >
-                        <Delete />
-                      </IconButton>
-                    )}
-                  </ListItem>
+                      </CardContent>
+                    </Card>
+                  </Grid>
                 ))}
-              </List>
+              </Grid>
             ) : (
-              <Box sx={{ textAlign: 'center', py: 4 }}>
-                <Schedule sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
-                <Typography variant="h6" color="text.secondary" gutterBottom>
+              <Box sx={{ 
+                textAlign: 'center', 
+                py: { xs: 4, md: 6 },
+                background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+                borderRadius: 3,
+                border: '2px dashed #dee2e6'
+              }}>
+                <Box sx={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #6c757d, #adb5bd)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  mx: 'auto',
+                  mb: 2
+                }}>
+                  <Schedule sx={{ fontSize: 40, color: 'white' }} />
+                </Box>
+                <Typography variant="h6" color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
                   Nenhum agendamento encontrado
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Que tal agendar um serviço para sua bike?
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 300, mx: 'auto' }}>
+                  Que tal agendar um serviço para sua bike? Encontre a oficina perfeita para você!
                 </Typography>
                 <Button
                   variant="contained"
                   component={Link}
-                  to="/workshops"
+                  to="/workshop-search"
+                  size="large"
+                  sx={{
+                    borderRadius: 3,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    px: 4,
+                    py: 1.5
+                  }}
                 >
-                  Buscar Oficinas
+                  🔍 Buscar Oficinas
                 </Button>
               </Box>
             )}
@@ -460,37 +668,220 @@ const Dashboard = () => {
 
         </Grid>
 
-        {/* Sidebar com Notificações */}
+        {/* Sidebar com Notificações e Oficinas Próximas */}
         <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-              <Notifications sx={{ mr: 1, verticalAlign: 'middle' }} />
-              Notificações
-            </Typography>
+          {/* Oficinas Próximas - Design Moderno */}
+          <Paper sx={{ 
+            p: { xs: 2, md: 3 },
+            mb: 3,
+            borderRadius: 3,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+              <Build sx={{ color: 'primary.main', fontSize: 28 }} />
+              <Typography variant="h6" sx={{ fontWeight: 700, color: '#1976d2' }}>
+                Oficinas Próximas
+              </Typography>
+            </Box>
+            
+            {workshopsLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress />
+              </Box>
+            ) : nearbyWorkshops.length > 0 ? (
+              <Grid container spacing={2}>
+                {nearbyWorkshops.map((workshop) => (
+                  <Grid item xs={12} key={workshop.id}>
+                    <Card sx={{ 
+                      borderRadius: 3,
+                      border: '1px solid #f0f0f0',
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        boxShadow: '0 8px 25px rgba(0,0,0,0.12)',
+                        transform: 'translateY(-2px)'
+                      }
+                    }}>
+                      <CardContent sx={{ p: 2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                          <Box sx={{
+                            width: 35,
+                            height: 35,
+                            borderRadius: '50%',
+                            background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            mr: 1.5
+                          }}>
+                            <Build sx={{ color: 'white', fontSize: 18 }} />
+                          </Box>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '1rem', lineHeight: 1.2 }}>
+                            {workshop.name}
+                          </Typography>
+                        </Box>
+                        
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          📍 {workshop.address}
+                        </Typography>
+                        
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Rating value={workshop.rating || 0} readOnly size="small" />
+                            <Typography variant="body2" sx={{ ml: 1, fontWeight: 500 }}>
+                              ({workshop.reviewCount || 0})
+                            </Typography>
+                          </Box>
+                          <Typography variant="body2" color="primary.main" sx={{ fontWeight: 600 }}>
+                            📏 {workshop.distance ? `${workshop.distance.toFixed(1)} km` : 'N/A'}
+                          </Typography>
+                        </Box>
+                        
+                        <Button
+                          variant="contained"
+                          size="small"
+                          fullWidth
+                          component={Link}
+                          to={`/workshop/${workshop.id}`}
+                          sx={{
+                            borderRadius: 2,
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            py: 1
+                          }}
+                        >
+                          Ver Detalhes
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            ) : (
+              <Box sx={{ 
+                textAlign: 'center', 
+                py: 4,
+                background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+                borderRadius: 3,
+                border: '2px dashed #dee2e6'
+              }}>
+                <Box sx={{
+                  width: 60,
+                  height: 60,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #6c757d, #adb5bd)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  mx: 'auto',
+                  mb: 2
+                }}>
+                  <Build sx={{ fontSize: 30, color: 'white' }} />
+                </Box>
+                <Typography variant="subtitle1" color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
+                  Nenhuma oficina encontrada
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: 250, mx: 'auto' }}>
+                  Explore todas as opções disponíveis!
+                </Typography>
+                <Button
+                  variant="contained"
+                  component={Link}
+                  to="/workshop-search"
+                  size="small"
+                  sx={{
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    px: 3
+                  }}
+                >
+                  🔍 Buscar Oficinas
+                </Button>
+              </Box>
+            )}
+          </Paper>
+
+          {/* Notificações - Design Moderno */}
+          <Paper sx={{ 
+            p: { xs: 2, md: 3 },
+            borderRadius: 3,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+              <Notifications sx={{ color: 'primary.main', fontSize: 28 }} />
+              <Typography variant="h6" sx={{ fontWeight: 700, color: '#1976d2' }}>
+                Notificações
+              </Typography>
+            </Box>
+            
             {notifications.length > 0 ? (
-              <List>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {notifications.map((notification) => (
-                  <ListItem key={notification.id} divider>
-                    <ListItemText
-                      primary={notification.title}
-                      secondary={
-                        <>
-                          <Typography variant="body2" color="text.secondary">
+                  <Card key={notification.id} sx={{ 
+                    border: '1px solid #f0f0f0',
+                    borderRadius: 2,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                      transform: 'translateX(4px)'
+                    }
+                  }}>
+                    <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+                        <Box sx={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #ff9800, #ffb74d)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}>
+                          <Notifications sx={{ color: 'white', fontSize: 16 }} />
+                        </Box>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                            {notification.title}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.4, mb: 0.5 }}>
                             {notification.message}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
                             {notification.time}
                           </Typography>
-                        </>
-                      }
-                    />
-                  </ListItem>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
                 ))}
-              </List>
+              </Box>
             ) : (
-              <Box sx={{ textAlign: 'center', py: 2 }}>
+              <Box sx={{ 
+                textAlign: 'center', 
+                py: 4,
+                background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+                borderRadius: 3,
+                border: '2px dashed #dee2e6'
+              }}>
+                <Box sx={{
+                  width: 60,
+                  height: 60,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #6c757d, #adb5bd)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  mx: 'auto',
+                  mb: 2
+                }}>
+                  <Notifications sx={{ fontSize: 30, color: 'white' }} />
+                </Box>
+                <Typography variant="subtitle1" color="text.secondary" sx={{ fontWeight: 600, mb: 1 }}>
+                  Tudo em dia! 🎉
+                </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Nenhuma notificação
+                  Nenhuma notificação no momento
                 </Typography>
               </Box>
             )}

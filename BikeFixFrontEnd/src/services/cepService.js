@@ -138,9 +138,11 @@ export const searchByAddress = async (uf, cidade, logradouro) => {
   }
 };
 
-export default {
+const cepService = {
   validateCEP,
   formatCEP,
   searchByCEP,
   searchByAddress
 };
+
+export default cepService;

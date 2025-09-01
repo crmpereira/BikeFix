@@ -90,7 +90,7 @@ const WorkshopSearch = () => {
   useEffect(() => {
     loadWorkshops();
     getUserLocation();
-  }, []);
+  }, [loadWorkshops]);
 
   const loadWorkshops = useCallback(async (searchFilters = {}) => {
     try {
@@ -352,44 +352,71 @@ const WorkshopSearch = () => {
         Encontre a oficina perfeita para sua bike
       </Typography>
 
-      {/* Filtros de Busca */}
-      <Paper sx={{ p: { xs: 2, md: 3 }, mb: 4 }}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={4}>
+      {/* Filtros de Busca - Design Moderno */}
+      <Paper sx={{ 
+        p: { xs: 2, md: 3 }, 
+        mb: 4,
+        borderRadius: 3,
+        boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+          <Search sx={{ color: 'primary.main', fontSize: 28 }} />
+          <Typography variant="h6" sx={{ fontWeight: 700, color: '#1976d2' }}>
+            Buscar Oficinas
+          </Typography>
+        </Box>
+        
+        <Grid container spacing={2}>
+          {/* Busca Principal */}
+          <Grid item xs={12}>
             <TextField
               fullWidth
-              label="Buscar oficinas ou serviços"
+              label="Buscar por nome ou especialidade"
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
               size="medium"
+              sx={{ 
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 3,
+                  fontSize: '1.1rem'
+                }
+              }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Search />
+                    <Search sx={{ color: 'primary.main' }} />
                   </InputAdornment>
                 ),
               }}
             />
           </Grid>
           
-          <Grid item xs={12} md={2}>
+          {/* Localização */}
+          <Grid item xs={12} sm={6} md={4}>
             <TextField
               fullWidth
-              label="Localização"
+              label="Cidade"
               value={filters.city}
               onChange={(e) => setFilters({ ...filters, city: e.target.value })}
               size="medium"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <LocationOn />
-                  </InputAdornment>
-                ),
-              }}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
             />
           </Grid>
           
-          <Grid item xs={12} md={2}>
+          <Grid item xs={6} sm={3} md={2}>
+            <TextField
+              fullWidth
+              label="Estado"
+              value={filters.state}
+              onChange={(e) => setFilters({ ...filters, state: e.target.value.toUpperCase() })}
+              size="medium"
+              inputProps={{ maxLength: 2 }}
+              placeholder="SP"
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            />
+          </Grid>
+          
+          <Grid item xs={6} sm={3} md={3}>
             <TextField
               fullWidth
               label="CEP"
@@ -402,50 +429,83 @@ const WorkshopSearch = () => {
               size="medium"
               placeholder="12345-678"
               inputProps={{ maxLength: 9 }}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <LocationOn />
+                    <LocationOn sx={{ color: 'primary.main' }} />
                   </InputAdornment>
                 ),
               }}
             />
           </Grid>
           
-          <Grid item xs={12} md={2}>
+          <Grid item xs={12} sm={6} md={3}>
             <FormControl fullWidth>
               <InputLabel>Tipo de Serviço</InputLabel>
               <Select
                 value={filters.services.length > 0 ? filters.services[0] : ''}
                 label="Tipo de Serviço"
                 onChange={(e) => setFilters({ ...filters, services: e.target.value ? [e.target.value] : [] })}
+                sx={{ borderRadius: 2 }}
               >
-                <MenuItem value="">Todos</MenuItem>
+                <MenuItem value="">Todos os Serviços</MenuItem>
                 {availableServices.map((service) => (
                   <MenuItem key={service} value={service}>
-                    {service}
+                    🔧 {service}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
           </Grid>
           
-          <Grid item xs={12} md={2}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, height: '100%' }}>
+          {/* Botões de Ação */}
+          <Grid item xs={12}>
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: { xs: 'column', sm: 'row' },
+              gap: 2, 
+              mt: 2 
+            }}>
               <Button
-                fullWidth
                 variant="contained"
-                size="medium"
+                size="large"
                 onClick={handleSearch}
                 disabled={loading}
-                sx={{ flex: 1 }}
+                sx={{
+                  flex: { xs: 1, sm: 2 },
+                  borderRadius: 3,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  py: 1.5,
+                  fontSize: '1.1rem'
+                }}
+                startIcon={<Search />}
               >
-                {loading ? 'Buscando...' : 'Buscar'}
+                {loading ? '🔍 Buscando...' : '🔍 Buscar Oficinas'}
               </Button>
+              
               <Button
-                fullWidth
+                variant="contained"
+                color="secondary"
+                size="large"
+                onClick={searchNearbyWorkshops}
+                disabled={searchingNearby || loading}
+                sx={{
+                  flex: 1,
+                  borderRadius: 3,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  py: 1.5
+                }}
+                startIcon={<LocationOn />}
+              >
+                {searchingNearby ? '📍 Localizando...' : '📍 Próximas'}
+              </Button>
+              
+              <Button
                 variant="outlined"
-                size="small"
+                size="large"
                 onClick={() => {
                   const defaultFilters = {
                     search: '',
@@ -462,20 +522,15 @@ const WorkshopSearch = () => {
                   loadWorkshops({});
                 }}
                 disabled={loading}
-                sx={{ mb: 1 }}
+                sx={{
+                  flex: 1,
+                  borderRadius: 3,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  py: 1.5
+                }}
               >
-                Limpar
-              </Button>
-              <Button
-                fullWidth
-                variant="contained"
-                color="secondary"
-                size="small"
-                onClick={searchNearbyWorkshops}
-                disabled={searchingNearby || loading}
-                startIcon={<LocationOn />}
-              >
-                {searchingNearby ? 'Buscando...' : 'Próximas'}
+                🗑️ Limpar
               </Button>
             </Box>
           </Grid>
@@ -588,6 +643,15 @@ const WorkshopSearch = () => {
         </Alert>
       )}
       
+      {locationError && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          {locationError}
+          <Button onClick={getUserLocation} sx={{ ml: 2 }}>
+            Tentar Obter Localização
+          </Button>
+        </Alert>
+      )}
+      
       {!initialLoad && (
         <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -624,32 +688,48 @@ const WorkshopSearch = () => {
               height: '100%', 
               display: 'flex', 
               flexDirection: 'column',
+              borderRadius: 3,
+              border: '1px solid #f0f0f0',
+              transition: 'all 0.3s ease',
               '&:hover': {
-                transform: { xs: 'none', sm: 'translateY(-2px)' },
-                transition: 'transform 0.2s ease-in-out'
+                boxShadow: '0 8px 25px rgba(0,0,0,0.12)',
+                transform: 'translateY(-4px)'
               }
             }}>
               <CardContent sx={{ flexGrow: 1, p: { xs: 2, sm: 3 } }}>
+                {/* Header da Oficina */}
                 <Box sx={{ 
                   display: 'flex', 
-                  alignItems: { xs: 'flex-start', sm: 'center' }, 
+                  alignItems: 'center', 
                   mb: 2,
-                  flexDirection: { xs: 'column', sm: 'row' },
-                  gap: { xs: 1, sm: 2 }
+                  gap: 2
                 }}>
-                  <Avatar sx={{ bgcolor: 'primary.main', mr: { xs: 0, sm: 2 } }}>
-                    <Build />
-                  </Avatar>
-                  <Box sx={{ flexGrow: 1 }}>
+                  <Box sx={{
+                    width: { xs: 50, sm: 60 },
+                    height: { xs: 50, sm: 60 },
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <Build sx={{ color: 'white', fontSize: { xs: 24, sm: 28 } }} />
+                  </Box>
+                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                     <Box sx={{ 
                       display: 'flex', 
                       alignItems: 'center', 
                       gap: 1,
-                      flexWrap: { xs: 'wrap', sm: 'nowrap' }
+                      mb: 0.5
                     }}>
                       <Typography variant="h6" sx={{ 
-                        fontWeight: 600,
-                        fontSize: { xs: '1.1rem', sm: '1.25rem' }
+                        fontWeight: 700,
+                        fontSize: { xs: '1.1rem', sm: '1.25rem' },
+                        lineHeight: 1.2,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
                       }}>
                         {workshop.name}
                       </Typography>
@@ -659,85 +739,138 @@ const WorkshopSearch = () => {
                     </Box>
                     <Box sx={{ 
                        display: 'flex', 
-                       alignItems: { xs: 'flex-start', sm: 'center' },
-                       gap: 1,
-                       flexDirection: { xs: 'column', sm: 'row' }
+                       alignItems: 'center',
+                       gap: 1
                      }}>
                       <Rating value={workshop.rating} readOnly size="small" />
                       <Typography variant="body2" color="text.secondary" sx={{
-                        fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                        fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                        fontWeight: 500
                       }}>
-                        {workshop.rating} ({workshop.ratingCount || workshop.reviewCount} avaliações)
+                        {workshop.rating} ({workshop.ratingCount || workshop.reviewCount})
                       </Typography>
                     </Box>
                   </Box>
                 </Box>
 
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <LocationOn sx={{ fontSize: 16, color: 'text.secondary', mr: 1 }} />
+                {/* Informações de Localização */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'flex-start', 
+                  mb: 2,
+                  p: 1.5,
+                  bgcolor: '#f8f9fa',
+                  borderRadius: 2
+                }}>
+                  <LocationOn sx={{ fontSize: 18, color: 'primary.main', mr: 1, mt: 0.2 }} />
                   <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      {workshop.address}
+                    <Typography variant="body2" color="text.primary" sx={{ fontWeight: 500, mb: 0.5 }}>
+                      📍 {workshop.address}
                     </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {workshop.city}, {workshop.state} • CEP: {workshop.zipCode}
+                    </Typography>
+                    {workshop.distance && (
+                      <Typography variant="body2" color="primary.main" sx={{ fontWeight: 600, mt: 0.5 }}>
+                        📏 {workshop.distance}
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+
+                {/* Contato e Horário */}
+                <Box sx={{ mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <Phone sx={{ fontSize: 16, color: 'primary.main', mr: 1 }} />
                     <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
-                      {workshop.city}, {workshop.state} - CEP: {workshop.zipCode}
+                      📞 {workshop.phone}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <AccessTime sx={{ fontSize: 16, color: 'primary.main', mr: 1 }} />
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                      🕒 {workshop.openHours}
                     </Typography>
                   </Box>
                 </Box>
 
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Phone sx={{ fontSize: 16, color: 'text.secondary', mr: 1 }} />
-                  <Typography variant="body2" color="text.secondary">
-                    {workshop.phone}
+                {/* Serviços */}
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
+                    🔧 Serviços Oferecidos:
                   </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {workshop.serviceNames.slice(0, 3).map((serviceName, index) => (
+                      <Chip
+                        key={index}
+                        label={serviceName}
+                        size="small"
+                        sx={{
+                          bgcolor: '#e3f2fd',
+                          color: '#1976d2',
+                          fontWeight: 500,
+                          '&:hover': { bgcolor: '#bbdefb' }
+                        }}
+                      />
+                    ))}
+                    {workshop.serviceNames.length > 3 && (
+                      <Chip
+                        label={`+${workshop.serviceNames.length - 3} mais`}
+                        size="small"
+                        sx={{
+                          bgcolor: '#fff3e0',
+                          color: '#f57c00',
+                          fontWeight: 600
+                        }}
+                      />
+                    )}
+                </Box>
                 </Box>
 
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <AccessTime sx={{ fontSize: 16, color: 'text.secondary', mr: 1 }} />
-                  <Typography variant="body2" color="text.secondary">
-                    {workshop.openHours}
-                  </Typography>
-                </Box>
-
-                <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
-                  Serviços:
-                </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
-                  {workshop.serviceNames.slice(0, 3).map((serviceName, index) => (
-                    <Chip
-                      key={index}
-                      label={serviceName}
-                      size="small"
-                      variant="outlined"
-                    />
-                  ))}
-                  {workshop.serviceNames.length > 3 && (
-                    <Chip
-                      label={`+${workshop.serviceNames.length - 3}`}
-                      size="small"
-                      variant="outlined"
-                    />
+                {/* Informações de Preço e Distância */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  p: 1.5,
+                  bgcolor: '#f5f5f5',
+                  borderRadius: 2,
+                  mb: 2
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body2" color="success.main" sx={{ fontWeight: 700, fontSize: '0.9rem' }}>
+                      💰 {workshop.priceRange || 'Consulte valores'}
+                    </Typography>
+                  </Box>
+                  {workshop.distance && (
+                    <Typography variant="body2" color="primary.main" sx={{ fontWeight: 600 }}>
+                      📍 {workshop.distance}
+                    </Typography>
                   )}
-                </Box>
-
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography variant="body2" color="primary" sx={{ fontWeight: 500 }}>
-                    {workshop.priceRange}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {workshop.distance}
-                  </Typography>
                 </Box>
               </CardContent>
 
-              <CardActions sx={{ p: 2, pt: 0 }}>
+              {/* Botões de Ação */}
+              <CardActions sx={{ p: 2, pt: 0, gap: 1 }}>
                 <Button
                   fullWidth
                   variant="contained"
                   component={Link}
                   to={`/workshops/${workshop.id}`}
+                  sx={{
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    py: 1.2,
+                    background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #1565c0, #1976d2)',
+                      transform: 'translateY(-1px)',
+                      boxShadow: '0 4px 12px rgba(25,118,210,0.4)'
+                    }
+                  }}
                 >
-                  Ver Detalhes
+                  🔍 Ver Detalhes
                 </Button>
               </CardActions>
               </Card>

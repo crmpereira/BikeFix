@@ -1,146 +1,245 @@
-# 🚀 Guia de Deploy no Render.com - BikeFix
-
-Este guia te ajudará a fazer o deploy completo da aplicação BikeFix no Render.com.
+# 🚀 Guia Completo de Deploy no Render
 
 ## 📋 Pré-requisitos
 
-- [x] Conta no GitHub com o repositório BikeFix
-- [x] Conta no Render.com conectada ao GitHub
-- [ ] MongoDB Atlas configurado (ou outro MongoDB na nuvem)
-- [ ] Chave do Google Maps API
+✅ **Concluído:**
+- [x] Código no GitHub: https://github.com/crmpereira/BikeFix.git
+- [x] MongoDB Atlas configurado
+- [x] Arquivos de produção preparados
 
-## 🎯 Passo a Passo
-
-### 1️⃣ **Preparar MongoDB Atlas** (se ainda não tiver)
-
-1. Acesse [MongoDB Atlas](https://www.mongodb.com/atlas)
-2. Crie uma conta gratuita
-3. Crie um cluster gratuito
-4. Configure um usuário de banco de dados
-5. Adicione seu IP à whitelist (ou 0.0.0.0/0 para acesso total)
-6. Copie a string de conexão (será algo como: `mongodb+srv://usuario:senha@cluster.mongodb.net/bikefix`)
-
-### 2️⃣ **Gerar JWT Secret**
-
-Execute este comando no terminal para gerar uma chave segura:
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
-Ou use um gerador online: https://generate-secret.vercel.app/32
-
-### 3️⃣ **Deploy do Backend**
-
-1. **No Render Dashboard:**
-   - Clique em "New +" → "Web Service"
-   - Conecte seu repositório GitHub `BikeFix`
-   - Configure:
-     - **Name**: `bikefix-backend`
-     - **Root Directory**: `BikeFixBackEnd`
-     - **Environment**: `Node`
-     - **Build Command**: `npm install`
-     - **Start Command**: `npm start`
-     - **Plan**: `Free`
-
-2. **Configurar Variáveis de Ambiente:**
-   ```
-   NODE_ENV=production
-   PORT=10000
-   MONGODB_URI=sua_string_de_conexao_mongodb_atlas
-   JWT_SECRET=sua_chave_jwt_gerada
-   JWT_EXPIRES_IN=7d
-   FRONTEND_URL=https://bikefix-frontend.onrender.com
-   ```
-
-3. **Deploy**: Clique em "Create Web Service"
-
-### 4️⃣ **Deploy do Frontend**
-
-1. **No Render Dashboard:**
-   - Clique em "New +" → "Static Site"
-   - Conecte o mesmo repositório GitHub `BikeFix`
-   - Configure:
-     - **Name**: `bikefix-frontend`
-     - **Root Directory**: `BikeFixFrontEnd`
-     - **Build Command**: `npm install && npm run build`
-     - **Publish Directory**: `build`
-
-2. **Configurar Variáveis de Ambiente:**
-   ```
-   REACT_APP_API_URL=https://bikefix-backend.onrender.com/api
-   REACT_APP_GOOGLE_MAPS_API_KEY=sua_chave_google_maps
-   ```
-
-3. **Deploy**: Clique em "Create Static Site"
-
-### 5️⃣ **Atualizar URLs Cruzadas**
-
-Após ambos os deploys:
-
-1. **No Backend**: Atualize a variável `FRONTEND_URL` com a URL real do frontend
-2. **No Frontend**: Verifique se `REACT_APP_API_URL` está com a URL real do backend
-
-### 6️⃣ **Configurar Google Maps** (Opcional)
-
-Se ainda não tiver:
-1. Acesse [Google Cloud Console](https://console.cloud.google.com/)
-2. Crie um projeto
-3. Habilite as APIs: Maps JavaScript API, Geocoding API, Places API
-4. Crie uma chave API
-5. Configure restrições de domínio para sua URL do Render
-
-## 🔧 Configurações Importantes
-
-### **Variáveis de Ambiente - Backend**
-| Variável | Descrição | Exemplo |
-|----------|-----------|----------|
-| `NODE_ENV` | Ambiente de execução | `production` |
-| `PORT` | Porta do servidor | `10000` |
-| `MONGODB_URI` | String de conexão MongoDB | `mongodb+srv://...` |
-| `JWT_SECRET` | Chave secreta JWT | `abc123...` |
-| `JWT_EXPIRES_IN` | Expiração do token | `7d` |
-| `FRONTEND_URL` | URL do frontend | `https://bikefix-frontend.onrender.com` |
-
-### **Variáveis de Ambiente - Frontend**
-| Variável | Descrição | Exemplo |
-|----------|-----------|----------|
-| `REACT_APP_API_URL` | URL da API backend | `https://bikefix-backend.onrender.com/api` |
-| `REACT_APP_GOOGLE_MAPS_API_KEY` | Chave Google Maps | `AIza...` |
-
-## 🚨 Troubleshooting
-
-### **Backend não inicia**
-- Verifique se `MONGODB_URI` está correto
-- Verifique se `JWT_SECRET` está definido
-- Veja os logs no Render Dashboard
-
-### **Frontend não carrega dados**
-- Verifique se `REACT_APP_API_URL` está correto
-- Verifique se o backend está rodando
-- Verifique CORS no backend
-
-### **Google Maps não funciona**
-- Verifique se `REACT_APP_GOOGLE_MAPS_API_KEY` está definido
-- Verifique se as APIs estão habilitadas no Google Cloud
-- Verifique as restrições de domínio
-
-## 🎉 Verificação Final
-
-Após o deploy, teste:
-- [ ] Frontend carrega corretamente
-- [ ] Login/cadastro funciona
-- [ ] Busca de oficinas funciona
-- [ ] Agendamentos funcionam
-- [ ] Google Maps carrega (se configurado)
-
-## 📱 URLs Finais
-
-- **Frontend**: `https://bikefix-frontend.onrender.com`
-- **Backend**: `https://bikefix-backend.onrender.com`
-- **API Docs**: `https://bikefix-backend.onrender.com/api-docs`
-- **Health Check**: `https://bikefix-backend.onrender.com/api/health`
+🔲 **Necessário:**
+- [ ] Conta no [Render](https://render.com) (gratuita)
+- [ ] Credenciais do MongoDB Atlas
+- [ ] Chaves JWT seguras
 
 ---
 
-**🔄 Deploy Automático**: Após a configuração inicial, qualquer push para a branch `main` fará deploy automático!
+## 🎯 Passo 1: Deploy do Backend
 
-**💡 Dica**: O plano gratuito do Render pode "dormir" após 15 minutos de inatividade. O primeiro acesso após isso pode demorar ~30 segundos para "acordar".
+### 1.1 Criar Web Service
+
+1. **Acesse:** https://render.com/dashboard
+2. **Clique:** "New" → "Web Service"
+3. **Conecte:** Repositório GitHub `BikeFix`
+4. **Configure:**
+
+```yaml
+Name: bikefix-backend
+Root Directory: BikeFixBackEnd
+Environment: Node
+Build Command: npm install
+Start Command: npm run start:prod
+Instance Type: Free
+```
+
+### 1.2 Variáveis de Ambiente
+
+**⚠️ IMPORTANTE:** Configure TODAS as variáveis abaixo:
+
+```env
+# Ambiente
+NODE_ENV=production
+PORT=10000
+
+# MongoDB Atlas
+MONGODB_URI=mongodb+srv://bikefix-app:SUA_SENHA_AQUI@cluster0.xxxxx.mongodb.net/bikefix?retryWrites=true&w=majority
+
+# JWT (GERE CHAVES FORTES!)
+JWT_SECRET=sua_chave_jwt_super_secreta_com_pelo_menos_32_caracteres_aqui
+JWT_EXPIRE=7d
+
+# URLs (ATUALIZE APÓS DEPLOY DO FRONTEND)
+FRONTEND_URL=https://bikefix-frontend.onrender.com
+
+# Email (Gmail App Password)
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=seu-email@gmail.com
+EMAIL_PASS=sua-senha-de-app-gmail
+
+# OAuth (Opcional)
+GOOGLE_CLIENT_ID=seu-google-client-id
+GOOGLE_CLIENT_SECRET=seu-google-client-secret
+STRAVA_CLIENT_ID=seu-strava-client-id
+STRAVA_CLIENT_SECRET=seu-strava-client-secret
+```
+
+### 1.3 Deploy
+
+1. **Clique:** "Create Web Service"
+2. **Aguarde:** ~5-10 minutos para build
+3. **Verifique:** Logs para erros
+4. **Teste:** `https://seu-backend.onrender.com/api/health`
+
+---
+
+## 🎯 Passo 2: Deploy do Frontend
+
+### 2.1 Criar Static Site
+
+1. **No Dashboard:** "New" → "Static Site"
+2. **Conecte:** Mesmo repositório `BikeFix`
+3. **Configure:**
+
+```yaml
+Name: bikefix-frontend
+Root Directory: BikeFixFrontEnd
+Build Command: npm install && npm run build
+Publish Directory: build
+```
+
+### 2.2 Variável de Ambiente
+
+```env
+REACT_APP_API_URL=https://bikefix-backend.onrender.com/api
+```
+
+**⚠️ SUBSTITUA:** `bikefix-backend` pela URL real do seu backend
+
+### 2.3 Deploy
+
+1. **Clique:** "Create Static Site"
+2. **Aguarde:** ~3-5 minutos para build
+3. **Teste:** Acesse a URL fornecida
+
+---
+
+## 🔧 Passo 3: Configurações Finais
+
+### 3.1 Atualizar FRONTEND_URL no Backend
+
+1. **Vá para:** Backend no Render Dashboard
+2. **Environment:** Edite `FRONTEND_URL`
+3. **Valor:** URL real do frontend (ex: `https://bikefix-frontend.onrender.com`)
+4. **Salve:** Isso reiniciará o backend automaticamente
+
+### 3.2 Configurar MongoDB Atlas
+
+1. **Network Access:** Adicione `0.0.0.0/0` (ou IPs específicos do Render)
+2. **Database Users:** Confirme usuário `bikefix-app` com senha forte
+3. **Test Connection:** Use MongoDB Compass ou shell
+
+---
+
+## ✅ Verificação de Deploy
+
+### Backend Health Check
+```bash
+curl https://seu-backend.onrender.com/api/health
+# Resposta esperada: {"status":"OK","timestamp":"..."}
+```
+
+### Frontend Funcionando
+- [ ] Página inicial carrega
+- [ ] Login/cadastro funciona
+- [ ] API calls funcionam (verifique Network tab)
+
+### Logs de Erro
+- **Backend:** Render Dashboard → Service → Logs
+- **Frontend:** Browser DevTools → Console
+
+---
+
+## 🚨 Troubleshooting
+
+### ❌ Backend não inicia
+
+**Sintomas:** Build falha ou crash no startup
+
+**Soluções:**
+```bash
+# 1. Verifique package.json tem script start:prod
+# 2. Confirme todas env vars estão definidas
+# 3. Verifique logs no Render Dashboard
+# 4. Teste MongoDB URI localmente
+```
+
+### ❌ CORS Error
+
+**Sintomas:** Frontend não consegue chamar API
+
+**Soluções:**
+```bash
+# 1. Confirme FRONTEND_URL no backend
+# 2. Verifique REACT_APP_API_URL no frontend
+# 3. Teste URLs manualmente
+```
+
+### ❌ MongoDB Connection Failed
+
+**Sintomas:** Erro de conexão com banco
+
+**Soluções:**
+```bash
+# 1. Verifique MONGODB_URI está correto
+# 2. Confirme Network Access no Atlas (0.0.0.0/0)
+# 3. Teste credenciais do usuário
+# 4. Verifique se cluster está ativo
+```
+
+### ❌ Build Timeout
+
+**Sintomas:** Deploy falha por timeout
+
+**Soluções:**
+```bash
+# 1. Remova node_modules do repo
+# 2. Otimize package.json (remova deps desnecessárias)
+# 3. Use .renderignore para arquivos grandes
+```
+
+---
+
+## 📊 Monitoramento
+
+### URLs de Produção
+- **Frontend:** https://bikefix-frontend.onrender.com
+- **Backend API:** https://bikefix-backend.onrender.com/api
+- **Documentação:** https://bikefix-backend.onrender.com/api-docs
+- **Health Check:** https://bikefix-backend.onrender.com/api/health
+
+### Métricas Importantes
+- **Uptime:** Render Dashboard
+- **Response Time:** Health check
+- **Error Rate:** Logs do backend
+- **Database:** MongoDB Atlas Metrics
+
+---
+
+## 🔒 Segurança em Produção
+
+### ✅ Checklist de Segurança
+
+- [ ] **JWT_SECRET:** Chave forte (32+ caracteres)
+- [ ] **MongoDB:** Usuário específico, não admin
+- [ ] **Network Access:** IPs específicos (não 0.0.0.0/0 se possível)
+- [ ] **HTTPS:** Render fornece automaticamente
+- [ ] **Rate Limiting:** Configurado no backend
+- [ ] **CORS:** Apenas frontend autorizado
+- [ ] **Env Vars:** Nunca no código, apenas no Render
+
+### 🔐 Rotação de Credenciais
+
+**Mensalmente:**
+1. Gere novo JWT_SECRET
+2. Atualize senha do MongoDB
+3. Renove tokens OAuth se usados
+
+---
+
+## 📞 Suporte
+
+### Recursos Úteis
+- **Render Docs:** https://render.com/docs
+- **MongoDB Atlas:** https://docs.atlas.mongodb.com
+- **GitHub Repo:** https://github.com/crmpereira/BikeFix
+
+### Em Caso de Problemas
+1. **Verifique logs** no Render Dashboard
+2. **Teste localmente** com mesmas env vars
+3. **Consulte documentação** específica
+4. **Abra issue** no GitHub se necessário
+
+---
+
+**🎉 Parabéns! Seu BikeFix está pronto para produção!**

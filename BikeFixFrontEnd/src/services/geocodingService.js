@@ -243,9 +243,11 @@ export const geocodeCEP = async (cep) => {
   }
 };
 
-export default {
+const geocodingService = {
   geocodeAddress,
   reverseGeocode,
   searchPlaces,
   geocodeCEP
 };
+
+export default geocodingService;
