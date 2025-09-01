@@ -14,21 +14,6 @@ import {
   Rating,
   Avatar,
   Paper,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Slider,
-  IconButton,
-  Drawer,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Divider,
   CircularProgress,
   Alert,
   ToggleButton,
@@ -39,8 +24,6 @@ import {
   LocationOn,
   Phone,
   Schedule,
-  FilterList,
-  ExpandMore,
   Build,
   DirectionsBike,
   Verified,
@@ -58,14 +41,7 @@ import { toast } from 'react-toastify';
 const WorkshopSearch = () => {
   const [filters, setFilters] = useState({
     search: '',
-    city: '',
-    state: '',
-    cep: '',
-    minRating: 0,
-    maxDistance: 50,
-    services: [],
-    minPrice: 0,
-    maxPrice: 200
+    cep: ''
   });
   const [sortBy, setSortBy] = useState('rating');
   const [workshops, setWorkshops] = useState([]);
@@ -76,15 +52,6 @@ const WorkshopSearch = () => {
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [searchingNearby, setSearchingNearby] = useState(false);
-  const [availableServices] = useState([
-    'Manutenção Preventiva',
-    'Reparo de Freios',
-    'Troca de Pneus',
-    'Ajuste de Câmbio',
-    'Limpeza Completa',
-    'Upgrade de Componentes',
-    'Revisão Geral'
-  ]);
 
   const loadWorkshops = useCallback(async (searchFilters = {}) => {
     try {
@@ -511,7 +478,7 @@ const WorkshopSearch = () => {
         )}
       </Paper>
 
-      {/* Filtros de Busca - Design Moderno */}
+      {/* Busca Simples */}
       <Paper sx={{ 
         p: { xs: 2, md: 3 }, 
         mb: 4,
@@ -538,265 +505,72 @@ const WorkshopSearch = () => {
           </Typography>
         </Box>
         
-        <Grid container spacing={2}>
-          {/* Busca Principal */}
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Buscar por nome ou especialidade"
-              value={filters.search}
-              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-              size="medium"
-              sx={{ 
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 3,
-                  fontSize: '1.1rem'
-                }
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search sx={{ color: 'primary.main' }} />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: 2,
+          alignItems: 'center'
+        }}>
+          <TextField
+            fullWidth
+            label="Buscar por nome ou especialidade"
+            value={filters.search}
+            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+            size="large"
+            sx={{ 
+              flex: 2,
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 3,
+                fontSize: '1.1rem'
+              }
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search sx={{ color: 'primary.main' }} />
+                </InputAdornment>
+              ),
+            }}
+          />
           
-          {/* Localização */}
-          <Grid item xs={12} sm={6} md={4}>
-            <TextField
-              fullWidth
-              label="Cidade"
-              value={filters.city}
-              onChange={(e) => setFilters({ ...filters, city: e.target.value })}
-              size="medium"
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-            />
-          </Grid>
+          <Button
+            variant="contained"
+            size="large"
+            onClick={handleSearch}
+            disabled={loading}
+            sx={{
+              borderRadius: 3,
+              textTransform: 'none',
+              fontWeight: 600,
+              py: 1.5,
+              px: 4,
+              fontSize: '1.1rem',
+              minWidth: '140px'
+            }}
+          >
+            {loading ? '🔍 Buscando...' : '🔍 Buscar'}
+          </Button>
           
-          <Grid item xs={6} sm={3} md={2}>
-            <TextField
-              fullWidth
-              label="Estado"
-              value={filters.state}
-              onChange={(e) => setFilters({ ...filters, state: e.target.value.toUpperCase() })}
-              size="medium"
-              inputProps={{ maxLength: 2 }}
-              placeholder="SP"
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-            />
-          </Grid>
-          
-          <Grid item xs={6} sm={3} md={3}>
-            <TextField
-              fullWidth
-              label="CEP"
-              value={filters.cep || ''}
-              onChange={(e) => {
-                const value = e.target.value.replace(/\D/g, '');
-                const formattedCEP = value.length > 5 ? `${value.slice(0, 5)}-${value.slice(5, 8)}` : value;
-                setFilters({ ...filters, cep: formattedCEP });
-              }}
-              size="medium"
-              placeholder="12345-678"
-              inputProps={{ maxLength: 9 }}
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <LocationOn sx={{ color: 'primary.main' }} />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>Tipo de Serviço</InputLabel>
-              <Select
-                value={filters.services.length > 0 ? filters.services[0] : ''}
-                label="Tipo de Serviço"
-                onChange={(e) => setFilters({ ...filters, services: e.target.value ? [e.target.value] : [] })}
-                sx={{ borderRadius: 2 }}
-              >
-                <MenuItem value="">Todos os Serviços</MenuItem>
-                {availableServices.map((service) => (
-                  <MenuItem key={service} value={service}>
-                    🔧 {service}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          
-          {/* Botões de Ação */}
-          <Grid item xs={12}>
-            <Box sx={{ 
-              display: 'flex', 
-              flexDirection: { xs: 'column', sm: 'row' },
-              gap: 2, 
-              mt: 2 
-            }}>
-              <Button
-                variant="contained"
-                size="large"
-                onClick={handleSearch}
-                disabled={loading}
-                sx={{
-                  flex: { xs: 1, sm: 2 },
-                  borderRadius: 3,
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  py: 1.5,
-                  fontSize: '1.1rem'
-                }}
-                startIcon={<Search />}
-              >
-                {loading ? '🔍 Buscando...' : '🔍 Buscar Oficinas'}
-              </Button>
-              
-              <Button
-                variant="contained"
-                color="secondary"
-                size="large"
-                onClick={searchNearbyWorkshops}
-                disabled={searchingNearby || loading}
-                sx={{
-                  flex: 1,
-                  borderRadius: 3,
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  py: 1.5
-                }}
-                startIcon={<LocationOn />}
-              >
-                {searchingNearby ? '📍 Localizando...' : '📍 Próximas'}
-              </Button>
-              
-              <Button
-                variant="outlined"
-                size="large"
-                onClick={() => {
-                  const defaultFilters = {
-                    search: '',
-                    city: '',
-                    state: '',
-                    cep: '',
-                    minRating: 0,
-                    maxDistance: 50,
-                    services: [],
-                    minPrice: 0,
-                    maxPrice: 200
-                  };
-                  setFilters(defaultFilters);
-                  loadWorkshops({});
-                }}
-                disabled={loading}
-                sx={{
-                  flex: 1,
-                  borderRadius: 3,
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  py: 1.5
-                }}
-              >
-                🗑️ Limpar
-              </Button>
-            </Box>
-          </Grid>
-        </Grid>
-
-        {/* Filtros Avançados */}
-        <Accordion sx={{ mt: 2 }}>
-          <AccordionSummary expandIcon={<ExpandMore />}>
-            <FilterList sx={{ mr: 1 }} />
-            <Typography>Filtros Avançados</Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <Typography gutterBottom>Faixa de Preço</Typography>
-                <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                  <TextField
-                    label="Preço Mínimo"
-                    type="number"
-                    value={filters.minPrice}
-                    onChange={(e) => setFilters({ ...filters, minPrice: parseFloat(e.target.value) || 0 })}
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start">R$</InputAdornment>,
-                    }}
-                    size="small"
-                    fullWidth
-                  />
-                  <TextField
-                    label="Preço Máximo"
-                    type="number"
-                    value={filters.maxPrice}
-                    onChange={(e) => setFilters({ ...filters, maxPrice: parseFloat(e.target.value) || 500 })}
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start">R$</InputAdornment>,
-                    }}
-                    size="small"
-                    fullWidth
-                  />
-                </Box>
-              </Grid>
-              
-              <Grid item xs={12} md={6}>
-                <Typography gutterBottom>Distância Máxima</Typography>
-                <Box sx={{ px: 2, mb: 2 }}>
-                  <Slider
-                    value={filters.maxDistance}
-                    onChange={(e, newValue) => setFilters({ ...filters, maxDistance: newValue })}
-                    min={1}
-                    max={100}
-                    step={5}
-                    marks={[
-                      { value: 5, label: '5km' },
-                      { value: 25, label: '25km' },
-                      { value: 50, label: '50km' },
-                      { value: 100, label: '100km' }
-                    ]}
-                    valueLabelDisplay="auto"
-                    valueLabelFormat={(value) => `${value}km`}
-                  />
-                </Box>
-              </Grid>
-              
-              <Grid item xs={12} md={6}>
-                <Typography gutterBottom>Avaliação Mínima</Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                  <Rating
-                    value={filters.minRating}
-                    onChange={(e, newValue) => setFilters({ ...filters, minRating: newValue || 0 })}
-                    precision={0.5}
-                  />
-                  <Typography variant="body2" color="text.secondary">
-                    {filters.minRating > 0 ? `${filters.minRating} estrelas ou mais` : 'Qualquer avaliação'}
-                  </Typography>
-                </Box>
-              </Grid>
-              
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Ordenar por</InputLabel>
-                  <Select
-                    value={sortBy}
-                    label="Ordenar por"
-                    onChange={(e) => setSortBy(e.target.value)}
-                  >
-                    <MenuItem value="rating">Melhor Avaliação</MenuItem>
-                    <MenuItem value="distance">Mais Próximo</MenuItem>
-                    <MenuItem value="price">Menor Preço</MenuItem>
-                    <MenuItem value="reviews">Mais Avaliações</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
-          </AccordionDetails>
-        </Accordion>
+          <Button
+            variant="contained"
+            color="secondary"
+            size="large"
+            onClick={searchNearbyWorkshops}
+            disabled={searchingNearby || loading}
+            sx={{
+              borderRadius: 3,
+              textTransform: 'none',
+              fontWeight: 600,
+              py: 1.5,
+              px: 3,
+              fontSize: '1.1rem',
+              minWidth: '140px'
+            }}
+            startIcon={<LocationOn />}
+          >
+            {searchingNearby ? '📍 Localizando...' : '📍 Próximas'}
+          </Button>
+        </Box>
       </Paper>
 
       {/* Loading e Error States */}
