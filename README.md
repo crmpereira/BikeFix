@@ -100,6 +100,24 @@ npm start
 # Aplicação rodando em http://localhost:3000
 ```
 
+### 🌱 Populando o Banco com Dados de Teste
+
+Para popular o banco de dados com oficinas de exemplo:
+
+```bash
+cd BikeFixBackEnd
+npm run seed
+```
+
+Este comando criará 5 oficinas de teste com dados completos:
+- **Bike Center** - Oficina geral com boa avaliação
+- **Speed Bikes** - Especializada em bikes de performance
+- **Ciclo Repair** - Oficina de bairro com preços acessíveis
+- **Bike Master** - Oficina premium com serviços especializados
+- **Mountain Bikes SP** - Especializada em mountain bikes
+
+**Importante**: Em produção com MongoDB Atlas, execute o seed apenas uma vez após o deploy inicial.
+
 ## ✨ Funcionalidades
 
 ### Para Ciclistas

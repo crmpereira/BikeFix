@@ -7,6 +7,7 @@
     "start": "node server.js",
     "start:prod": "node server-production.js",
     "dev": "nodemon server.js",
+    "seed": "node scripts/seedWorkshops.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
