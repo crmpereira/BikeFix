@@ -43,9 +43,11 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import appointmentService from '../services/appointmentService';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 
 const History = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -425,7 +427,7 @@ const History = () => {
                       <Tooltip title="Ver Detalhes">
                         <IconButton
                           size="small"
-                          onClick={() => openDetailDialog(appointment)}
+                          onClick={() => navigate(`/appointment/${appointment.id}`)}
                         >
                           <Visibility />
                         </IconButton>

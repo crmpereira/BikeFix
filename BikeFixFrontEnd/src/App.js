@@ -26,6 +26,9 @@ import History from './pages/History';
 import MyBike from './pages/MyBike';
 import WorkshopDashboard from './pages/WorkshopDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import FinancialReports from './pages/FinancialReports';
+import AdminFinancialReports from './pages/AdminFinancialReports';
+import AppointmentDetail from './pages/AppointmentDetail';
 import NotFound from './pages/NotFound';
 
 // Styles
@@ -107,6 +110,9 @@ function App() {
                   <Route path="/my-bike" element={<MyBike />} />
                   <Route path="/workshop-dashboard" element={<WorkshopDashboard />} />
                   <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/financial-reports" element={<FinancialReports />} />
+          <Route path="/admin-financial-reports" element={<AdminFinancialReports />} />
+          <Route path="/appointment/:id" element={<AppointmentDetail />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>

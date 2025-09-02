@@ -268,6 +268,88 @@ const appointmentService = {
   },
 
   // Funções utilitárias
+
+  // Métodos de orçamento
+  getBudget: async (appointmentId) => {
+    try {
+      console.log('appointmentService - Buscando orçamento para agendamento:', appointmentId);
+      const response = await api.get(`/appointments/${appointmentId}/budget`);
+      console.log('appointmentService - Orçamento encontrado:', response.data);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error('appointmentService - Erro ao buscar orçamento:', error);
+      if (error.response?.status === 404) {
+        return {
+          success: true,
+          data: null
+        };
+      }
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Erro ao buscar orçamento'
+      };
+    }
+  },
+
+  createOrUpdateBudget: async (budgetData) => {
+    try {
+      console.log('appointmentService - Criando/atualizando orçamento:', budgetData);
+      const response = await api.post(`/appointments/${budgetData.appointmentId}/budget`, budgetData);
+      console.log('appointmentService - Orçamento salvo:', response.data);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error('appointmentService - Erro ao salvar orçamento:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Erro ao salvar orçamento'
+      };
+    }
+  },
+
+  approveBudget: async (appointmentId) => {
+    try {
+      console.log('appointmentService - Aprovando orçamento:', appointmentId);
+      const response = await api.post(`/appointments/${appointmentId}/budget/approve`);
+      console.log('appointmentService - Orçamento aprovado:', response.data);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error('appointmentService - Erro ao aprovar orçamento:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Erro ao aprovar orçamento'
+      };
+    }
+  },
+
+  rejectBudget: async (appointmentId, rejectionReason) => {
+    try {
+      console.log('appointmentService - Rejeitando orçamento:', appointmentId, rejectionReason);
+      const response = await api.post(`/appointments/${appointmentId}/budget/reject`, {
+        rejectionReason
+      });
+      console.log('appointmentService - Orçamento rejeitado:', response.data);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error('appointmentService - Erro ao rejeitar orçamento:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Erro ao rejeitar orçamento'
+      };
+    }
+  },
+
   formatAppointmentForFrontend: (appointment) => {
     if (!appointment) return null;
 

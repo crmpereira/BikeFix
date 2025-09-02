@@ -26,6 +26,7 @@ import {
   ExitToApp,
   Person,
   AdminPanelSettings,
+  Assessment,
 } from '@mui/icons-material';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -82,11 +83,13 @@ const Navbar = () => {
     } else if (user?.userType === 'workshop') {
       menuItems.push(
         { text: 'Painel Oficina', path: '/workshop-dashboard', icon: <Build /> },
+        { text: 'Relatórios Financeiros', path: '/financial-reports', icon: <Assessment /> },
         { text: 'Perfil', path: '/profile', icon: <Person /> }
       );
     } else if (user?.userType === 'admin') {
       menuItems.push(
         { text: 'Admin', path: '/admin', icon: <AdminPanelSettings /> },
+        { text: 'Relatórios Financeiros', path: '/admin-financial-reports', icon: <Assessment /> },
         { text: 'Perfil', path: '/profile', icon: <Person /> }
       );
     }

@@ -59,6 +59,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import appointmentService from '../services/appointmentService';
+import paymentService from '../services/paymentService';
 
 const WorkshopDashboard = () => {
   const { user } = useAuth();
@@ -72,6 +73,11 @@ const WorkshopDashboard = () => {
   const [stats, setStats] = useState({
     todayAppointments: 0,
     weekRevenue: 0,
+    weekGrossRevenue: 0,
+    weekNetRevenue: 0,
+    monthlyGrossRevenue: 0,
+    monthlyNetRevenue: 0,
+    platformFeeTotal: 0,
     monthlyGrowth: 0,
     pendingQuotes: 0,
     averageRating: 0,
@@ -89,7 +95,7 @@ const WorkshopDashboard = () => {
       setAppointments(response.data || []);
       
       // Calcular estatísticas baseadas nos agendamentos
-      calculateStats(response.data || []);
+      await calculateStats(response.data || []);
     } catch (error) {
       console.error('Erro ao carregar agendamentos:', error);
       toast.error('Erro ao carregar agendamentos');
@@ -99,22 +105,48 @@ const WorkshopDashboard = () => {
   };
 
   // Função para calcular estatísticas
-  const calculateStats = (appointmentsData) => {
+  const calculateStats = async (appointmentsData) => {
     const today = new Date().toISOString().split('T')[0];
     const todayAppointments = appointmentsData.filter(apt => apt.date === today).length;
     
     // Calcular receita da semana (últimos 7 dias)
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
-    const weekRevenue = appointmentsData
-      .filter(apt => new Date(apt.date) >= weekAgo && apt.status === 'completed')
+    const weekCompletedAppointments = appointmentsData
+      .filter(apt => new Date(apt.date) >= weekAgo && apt.status === 'completed');
+    
+    const weekRevenue = weekCompletedAppointments
       .reduce((sum, apt) => sum + (apt.totalPrice || 0), 0);
+    
+    // Calcular receita bruta e líquida da semana
+    const weekGrossRevenue = weekCompletedAppointments
+      .reduce((sum, apt) => sum + (apt.totalPrice || 0), 0);
+    const weekPlatformFees = weekCompletedAppointments
+      .reduce((sum, apt) => sum + (apt.platformFee || 0), 0);
+    const weekNetRevenue = weekGrossRevenue - weekPlatformFees;
+    
+    // Calcular receita mensal (últimos 30 dias)
+    const monthAgo = new Date();
+    monthAgo.setDate(monthAgo.getDate() - 30);
+    const monthCompletedAppointments = appointmentsData
+      .filter(apt => new Date(apt.date) >= monthAgo && apt.status === 'completed');
+    
+    const monthlyGrossRevenue = monthCompletedAppointments
+      .reduce((sum, apt) => sum + (apt.totalPrice || 0), 0);
+    const monthlyPlatformFees = monthCompletedAppointments
+      .reduce((sum, apt) => sum + (apt.platformFee || 0), 0);
+    const monthlyNetRevenue = monthlyGrossRevenue - monthlyPlatformFees;
     
     const pendingQuotes = appointmentsData.filter(apt => apt.status === 'pending').length;
     
     setStats({
       todayAppointments,
       weekRevenue,
+      weekGrossRevenue,
+      weekNetRevenue,
+      monthlyGrossRevenue,
+      monthlyNetRevenue,
+      platformFeeTotal: monthlyPlatformFees,
       monthlyGrowth: 0, // Seria calculado com dados históricos
       pendingQuotes,
       averageRating: user.workshopData?.rating?.average || 0,
@@ -138,8 +170,7 @@ const WorkshopDashboard = () => {
   };
 
   const handleViewAppointment = (appointment) => {
-    setSelectedAppointment(appointment);
-    setDialogOpen(true);
+    navigate(`/appointment/${appointment.id || appointment._id}`);
   };
 
   const handleUpdateStatus = async (appointmentId, newStatus) => {
@@ -239,10 +270,13 @@ const WorkshopDashboard = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box>
                 <Typography color="textSecondary" gutterBottom variant="body2">
-                  Receita Semanal
+                  Receita Bruta Semanal
                 </Typography>
                 <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                  R$ {stats.weekRevenue.toLocaleString()}
+                  R$ {stats.weekGrossRevenue.toLocaleString()}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Líquida: R$ {stats.weekNetRevenue.toLocaleString()}
                 </Typography>
               </Box>
               <Avatar sx={{ bgcolor: 'success.main' }}>
@@ -291,6 +325,42 @@ const WorkshopDashboard = () => {
               <Avatar sx={{ bgcolor: 'warning.main' }}>
                 <Star />
               </Avatar>
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Novo card para informações de comissão */}
+      <Grid item xs={12} md={4}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+              Resumo Financeiro Mensal
+            </Typography>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                Receita Bruta
+              </Typography>
+              <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                R$ {stats.monthlyGrossRevenue.toLocaleString()}
+              </Typography>
+            </Box>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                Taxa da Plataforma
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: 'warning.main' }}>
+                - R$ {stats.platformFeeTotal.toLocaleString()}
+              </Typography>
+            </Box>
+            <Divider sx={{ my: 1 }} />
+            <Box>
+              <Typography variant="body2" color="text.secondary">
+                Receita Líquida
+              </Typography>
+              <Typography variant="h5" sx={{ fontWeight: 600, color: 'success.main' }}>
+                R$ {stats.monthlyNetRevenue.toLocaleString()}
+              </Typography>
             </Box>
           </CardContent>
         </Card>

@@ -721,7 +721,9 @@ const Dashboard = () => {
                         </Box>
                         
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          📍 {workshop.address}
+                          📍 {workshop.address && typeof workshop.address === 'object'
+                  ? `${workshop.address.street}, ${workshop.address.city} - ${workshop.address.state}`
+                  : workshop.address}
                         </Typography>
                         
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>

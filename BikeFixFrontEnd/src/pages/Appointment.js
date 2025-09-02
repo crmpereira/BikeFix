@@ -47,6 +47,7 @@ import { toast } from 'react-toastify';
 import workshopService from '../services/workshopService';
 import appointmentService from '../services/appointmentService';
 import bikeService from '../services/bikeService';
+import { formatAddressCompact } from '../utils/addressFormatter';
 
 const Appointment = () => {
   const { user } = useAuth();
@@ -314,7 +315,7 @@ const Appointment = () => {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                           <LocationOn sx={{ fontSize: 16, color: '#666' }} />
                           <Typography variant="body2" color="text.secondary">
-                            {workshop.address}
+                            {formatAddressCompact(workshop.address)}
                           </Typography>
                         </Box>
                         {workshop.phone && (
@@ -889,7 +890,7 @@ const Appointment = () => {
                     {selectedWorkshop?.name}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    📍 {selectedWorkshop?.address}
+                    📍 {formatAddressCompact(selectedWorkshop?.address)}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     📞 {selectedWorkshop?.phone}

@@ -747,7 +747,9 @@ const WorkshopSearch = () => {
                   <LocationOn sx={{ fontSize: 18, color: 'primary.main', mr: 1, mt: 0.2 }} />
                   <Box sx={{ flexGrow: 1 }}>
                     <Typography variant="body2" color="text.primary" sx={{ fontWeight: 500, mb: 0.5 }}>
-                      📍 {workshop.address}
+                      📍 {workshop.address && typeof workshop.address === 'object'
+                  ? `${workshop.address.street}, ${workshop.address.city} - ${workshop.address.state}`
+                  : workshop.address}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       {workshop.city}, {workshop.state} • CEP: {workshop.zipCode}
