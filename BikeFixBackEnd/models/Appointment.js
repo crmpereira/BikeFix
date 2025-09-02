@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const CommissionConfig = require('./CommissionConfig');
 
 const appointmentSchema = new mongoose.Schema({
   // Referências
@@ -123,6 +124,21 @@ const appointmentSchema = new mongoose.Schema({
     totalPrice: {
       type: Number,
       default: 0
+    },
+    // Comissão da plataforma
+    platformFeeRate: {
+      type: Number,
+      default: 0.10, // 10% padrão
+      min: 0,
+      max: 1
+    },
+    platformFee: {
+      type: Number,
+      default: 0
+    },
+    workshopAmount: {
+      type: Number,
+      default: 0
     }
   },
   
@@ -212,10 +228,25 @@ const appointmentSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Middleware para calcular preço total
-appointmentSchema.pre('save', function(next) {
-  if (this.isModified('pricing.basePrice') || this.isModified('pricing.additionalPrice')) {
+// Middleware para calcular preço total e comissão
+appointmentSchema.pre('save', async function(next) {
+  if (this.isModified('pricing.basePrice') || this.isModified('pricing.additionalPrice') || this.isModified('pricing.platformFeeRate')) {
     this.pricing.totalPrice = (this.pricing.basePrice || 0) + (this.pricing.additionalPrice || 0);
+    
+    // Calcular comissão usando configuração dinâmica
+    try {
+      const config = await CommissionConfig.getActiveConfig();
+      const calculation = config.calculateCommission(this.workshop, this.pricing.totalPrice);
+      
+      this.pricing.platformFeeRate = calculation.rate;
+      this.pricing.platformFee = calculation.commission;
+      this.pricing.workshopAmount = calculation.workshopAmount;
+    } catch (error) {
+      console.error('Erro ao calcular comissão:', error);
+      // Fallback para taxa padrão de 10%
+      this.pricing.platformFee = this.pricing.totalPrice * (this.pricing.platformFeeRate || 0.10);
+      this.pricing.workshopAmount = this.pricing.totalPrice - this.pricing.platformFee;
+    }
   }
   next();
 });
@@ -235,7 +266,7 @@ appointmentSchema.methods.addAdditionalBudget = function(budgetData) {
   return this.save();
 };
 
-appointmentSchema.methods.approveAdditionalBudget = function(budgetId, response) {
+appointmentSchema.methods.approveAdditionalBudget = async function(budgetId, response) {
   const budget = this.additionalBudgets.id(budgetId);
   if (budget) {
     budget.status = 'approved';
@@ -243,6 +274,8 @@ appointmentSchema.methods.approveAdditionalBudget = function(budgetId, response)
     budget.cyclistResponse = response;
     
     this.pricing.additionalPrice += budget.totalAmount;
+    // Recalcular comissão com o novo valor total
+    await this.calculateCommission();
     this.status = 'confirmed';
   }
   return this.save();
@@ -258,6 +291,25 @@ appointmentSchema.methods.rejectAdditionalBudget = function(budgetId, response) 
     this.status = 'confirmed';
   }
   return this.save();
+};
+
+// Método para calcular comissão manualmente
+appointmentSchema.methods.calculateCommission = async function() {
+  this.pricing.totalPrice = (this.pricing.basePrice || 0) + (this.pricing.additionalPrice || 0);
+  
+  try {
+    const config = await CommissionConfig.getActiveConfig();
+    const calculation = config.calculateCommission(this.workshop, this.pricing.totalPrice);
+    
+    this.pricing.platformFeeRate = calculation.rate;
+    this.pricing.platformFee = calculation.commission;
+    this.pricing.workshopAmount = calculation.workshopAmount;
+  } catch (error) {
+    console.error('Erro ao calcular comissão:', error);
+    // Fallback para taxa padrão de 10%
+    this.pricing.platformFee = this.pricing.totalPrice * (this.pricing.platformFeeRate || 0.10);
+    this.pricing.workshopAmount = this.pricing.totalPrice - this.pricing.platformFee;
+  }
 };
 
 // Índices para performance

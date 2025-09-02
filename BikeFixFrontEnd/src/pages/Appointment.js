@@ -131,7 +131,7 @@ const Appointment = () => {
     // Validações específicas para cada step
     if (userBikes.length === 0) {
       toast.error('Você precisa cadastrar pelo menos uma bike antes de agendar um serviço.');
-      navigate('/my-bikes');
+      navigate('/my-bike');
       return;
     }
 
@@ -172,7 +172,7 @@ const Appointment = () => {
     setLoading(true);
     if (userBikes.length === 0) {
       toast.error('Você precisa cadastrar pelo menos uma bike antes de agendar um serviço.');
-      navigate('/my-bikes');
+      navigate('/my-bike');
       setLoading(false);
       return;
     }
@@ -651,7 +651,7 @@ const Appointment = () => {
                   <Button
                     variant="contained"
                     startIcon={<Add />}
-                    onClick={() => navigate('/my-bikes')}
+                    onClick={() => navigate('/my-bike')}
                     sx={{
                       borderRadius: 3,
                       px: 3,

@@ -8,7 +8,10 @@ const {
   updateAppointmentStatus,
   cancelAppointment,
   getWorkshopAppointments,
-  getAvailableSlots
+  getAvailableSlots,
+  addAdditionalBudget,
+  approveAdditionalBudget,
+  rejectAdditionalBudget
 } = require('../controllers/appointmentController');
 
 // Endpoint de teste para verificar autenticação
@@ -66,5 +69,20 @@ router.put('/:id/status', updateAppointmentStatus);
 // @desc    Cancelar agendamento
 // @access  Private
 router.put('/:id/cancel', cancelAppointment);
+
+// @route   POST /api/appointments/:id/budget
+// @desc    Adicionar orçamento adicional
+// @access  Private (Workshop)
+router.post('/:id/budget', addAdditionalBudget);
+
+// @route   PUT /api/appointments/:id/budget/:budgetId/approve
+// @desc    Aprovar orçamento adicional
+// @access  Private (Cyclist)
+router.put('/:id/budget/:budgetId/approve', approveAdditionalBudget);
+
+// @route   PUT /api/appointments/:id/budget/:budgetId/reject
+// @desc    Rejeitar orçamento adicional
+// @access  Private (Cyclist)
+router.put('/:id/budget/:budgetId/reject', rejectAdditionalBudget);
 
 module.exports = router;

@@ -1,5 +1,6 @@
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
+const CommissionConfig = require('../models/CommissionConfig');
 const mongoose = require('mongoose');
 
 // Criar novo agendamento
@@ -65,6 +66,20 @@ const createAppointment = async (req, res) => {
       totalPrice = requestedServices.reduce((sum, service) => sum + (service.price || 0), 0);
     }
 
+    // Obter configuração de comissão dinâmica
+    let commissionData = { rate: 0.10, commission: 0, workshopAmount: totalPrice };
+    try {
+      const config = await CommissionConfig.getActiveConfig();
+      commissionData = config.calculateCommission(workshopId, totalPrice);
+    } catch (error) {
+      console.error('Erro ao calcular comissão, usando taxa padrão:', error);
+      commissionData = {
+        rate: 0.10,
+        commission: totalPrice * 0.10,
+        workshopAmount: totalPrice * 0.90
+      };
+    }
+
     // Criar agendamento
     const appointment = new Appointment({
       cyclist: req.user.id,
@@ -80,7 +95,10 @@ const createAppointment = async (req, res) => {
       pricing: {
         basePrice: totalPrice,
         additionalPrice: 0,
-        totalPrice: totalPrice
+        totalPrice: totalPrice,
+        platformFeeRate: commissionData.rate,
+        platformFee: commissionData.commission,
+        workshopAmount: commissionData.workshopAmount
       },
       status: 'pending'
     });
@@ -487,6 +505,144 @@ const getAvailableSlots = async (req, res) => {
   }
 };
 
+// Adicionar orçamento adicional
+const addAdditionalBudget = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { description, items, totalAmount } = req.body;
+
+    const appointment = await Appointment.findById(id)
+      .populate('cyclist', 'name email')
+      .populate('workshop', 'name email');
+
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Agendamento não encontrado'
+      });
+    }
+
+    // Verificar se o usuário é a oficina responsável
+    if (appointment.workshop._id.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Apenas a oficina responsável pode adicionar orçamentos'
+      });
+    }
+
+    // Verificar se o agendamento está em status válido
+    if (!['confirmed', 'in_progress'].includes(appointment.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Orçamento adicional só pode ser adicionado em agendamentos confirmados ou em andamento'
+      });
+    }
+
+    const budgetData = {
+      description,
+      items,
+      totalAmount,
+      createdAt: new Date()
+    };
+
+    await appointment.addAdditionalBudget(budgetData);
+
+    res.status(200).json({
+      success: true,
+      message: 'Orçamento adicional enviado com sucesso',
+      data: appointment
+    });
+  } catch (error) {
+    console.error('Erro ao adicionar orçamento adicional:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor'
+    });
+  }
+};
+
+// Aprovar orçamento adicional
+const approveAdditionalBudget = async (req, res) => {
+  try {
+    const { id, budgetId } = req.params;
+    const { response } = req.body;
+
+    const appointment = await Appointment.findById(id)
+      .populate('cyclist', 'name email')
+      .populate('workshop', 'name email');
+
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Agendamento não encontrado'
+      });
+    }
+
+    // Verificar se o usuário é o ciclista responsável
+    if (appointment.cyclist._id.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Apenas o ciclista pode aprovar orçamentos'
+      });
+    }
+
+    await appointment.approveAdditionalBudget(budgetId, response);
+
+    res.status(200).json({
+      success: true,
+      message: 'Orçamento aprovado com sucesso',
+      data: appointment
+    });
+  } catch (error) {
+    console.error('Erro ao aprovar orçamento:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor'
+    });
+  }
+};
+
+// Rejeitar orçamento adicional
+const rejectAdditionalBudget = async (req, res) => {
+  try {
+    const { id, budgetId } = req.params;
+    const { response } = req.body;
+
+    const appointment = await Appointment.findById(id)
+      .populate('cyclist', 'name email')
+      .populate('workshop', 'name email');
+
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Agendamento não encontrado'
+      });
+    }
+
+    // Verificar se o usuário é o ciclista responsável
+    if (appointment.cyclist._id.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Apenas o ciclista pode rejeitar orçamentos'
+      });
+    }
+
+    await appointment.rejectAdditionalBudget(budgetId, response);
+
+    res.status(200).json({
+      success: true,
+      message: 'Orçamento rejeitado com sucesso',
+      data: appointment
+    });
+  } catch (error) {
+    console.error('Erro ao rejeitar orçamento:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor'
+    });
+  }
+};
+
 module.exports = {
   createAppointment,
   getUserAppointments,
@@ -494,5 +650,8 @@ module.exports = {
   getAppointmentById,
   updateAppointmentStatus,
   cancelAppointment,
-  getAvailableSlots
+  getAvailableSlots,
+  addAdditionalBudget,
+  approveAdditionalBudget,
+  rejectAdditionalBudget
 };

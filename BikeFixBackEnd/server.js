@@ -106,6 +106,8 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/workshops', require('./routes/workshops'));
 app.use('/api/appointments', require('./routes/appointments'));
 app.use('/api/reviews', require('./routes/reviews'));
+app.use('/api/commission', require('./routes/commission'));
+app.use('/api/payments', require('./routes/payments'));
 // app.use('/api/services', require('./routes/services'));
 // app.use('/api/admin', require('./routes/admin'));
 

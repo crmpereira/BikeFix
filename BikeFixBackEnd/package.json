@@ -8,6 +8,7 @@
     "start:prod": "node server-production.js",
     "dev": "nodemon server.js",
     "seed": "node scripts/seedWorkshops.js",
+    "migrate:prod": "node scripts/migrate-production.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -28,6 +29,7 @@
     "express-validator": "^7.0.1",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
+    "mercadopago": "^2.8.0",
     "mongodb": "^6.19.0",
     "mongoose": "^8.0.3",
     "morgan": "^1.10.0",

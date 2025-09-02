@@ -128,6 +128,20 @@ const userSchema = new mongoose.Schema({
     isApproved: {
       type: Boolean,
       default: false
+    },
+    // Dados de pagamento Mercado Pago
+    mercadoPago: {
+      accessToken: {
+        type: String,
+        select: false // Não retorna por padrão por segurança
+      },
+      userId: String, // ID do usuário no Mercado Pago
+      email: String, // Email cadastrado no Mercado Pago
+      isActive: {
+        type: Boolean,
+        default: false
+      },
+      lastSync: Date
     }
   },
   
