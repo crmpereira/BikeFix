@@ -22,6 +22,8 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
+  InputAdornment,
+  CircularProgress,
 } from '@mui/material';
 import {
   Edit,
@@ -36,15 +38,18 @@ import {
   Verified,
   Security,
   History,
+  Search,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-toastify';
+import { validateCEP, formatCEP, searchByCEP } from '../services/cepService';
 
 const Profile = () => {
   const { user, updateProfile, changePassword } = useAuth();
   const [editing, setEditing] = useState(false);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [searchingCEP, setSearchingCEP] = useState(false);
   
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -64,10 +69,50 @@ const Profile = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    let processedValue = value;
+    
+    // Aplicar máscara de CEP
+    if (name === 'zipCode') {
+      processedValue = formatCEP(value);
+    }
+    
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: processedValue
     }));
+    
+    // Buscar endereço automaticamente quando CEP for preenchido completamente
+    if (name === 'zipCode' && processedValue.length === 9) {
+      handleSearchByCEP(processedValue);
+    }
+  };
+  
+  // Função para buscar endereço por CEP
+  const handleSearchByCEP = async (cep) => {
+    try {
+      if (!validateCEP(cep)) {
+        return;
+      }
+      
+      setSearchingCEP(true);
+      const addressData = await searchByCEP(cep);
+      
+      // Preencher campos de endereço automaticamente
+      setFormData(prev => ({
+        ...prev,
+        address: addressData.logradouro || '',
+        city: addressData.localidade || '',
+        state: addressData.uf || ''
+      }));
+      
+      toast.success('Endereço preenchido automaticamente!');
+    } catch (error) {
+      console.error('Erro ao buscar CEP:', error);
+      toast.error('Erro ao buscar CEP. Verifique o código e tente novamente.');
+    } finally {
+      setSearchingCEP(false);
+    }
   };
 
   const handlePasswordChange = (e) => {
@@ -225,9 +270,30 @@ const Profile = () => {
                     value={formData.zipCode}
                     onChange={handleInputChange}
                     disabled={!editing}
+                    placeholder="12345-678"
+                    inputProps={{ maxLength: 9 }}
                     InputProps={{
                       startAdornment: <LocationOn sx={{ mr: 1, color: 'text.secondary' }} />,
+                      endAdornment: editing && (
+                        <InputAdornment position="end">
+                          {searchingCEP ? (
+                            <CircularProgress size={20} />
+                          ) : (
+                            formData.zipCode && formData.zipCode.length === 9 && (
+                              <IconButton
+                                size="small"
+                                onClick={() => handleSearchByCEP(formData.zipCode)}
+                                disabled={searchingCEP}
+                                title="Buscar endereço"
+                              >
+                                <Search fontSize="small" />
+                              </IconButton>
+                            )
+                          )}
+                        </InputAdornment>
+                      ),
                     }}
+                    helperText={editing ? "Digite o CEP para preencher o endereço automaticamente" : ""}
                   />
                 </Grid>
                 
