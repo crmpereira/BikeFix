@@ -18,12 +18,12 @@ const workshopsData = [
       description: 'Oficina especializada em manutenção e reparo de bikes com mais de 15 anos de experiência. Oferecemos serviços completos para todos os tipos de bikes.',
       address: {
         street: 'Rua das Flores, 123',
-        city: 'São Paulo',
-        state: 'SP',
-        zipCode: '01234-567',
+        city: 'Joinville',
+        state: 'SC',
+        zipCode: '89201-001',
         coordinates: {
-          lat: -23.5505,
-          lng: -46.6333
+          lat: -26.3044,
+          lng: -48.8487
         }
       },
       workingHours: {
@@ -80,13 +80,13 @@ const workshopsData = [
       cnpj: '98.765.432/0001-10',
       description: 'Especialistas em bikes de alta performance e speed. Atendemos ciclistas profissionais e amadores com equipamentos de última geração.',
       address: {
-        street: 'Av. Paulista, 456',
-        city: 'São Paulo',
-        state: 'SP',
-        zipCode: '01310-100',
+        street: 'Av. Beira Rio, 456',
+        city: 'Joinville',
+        state: 'SC',
+        zipCode: '89202-002',
         coordinates: {
-          lat: -23.5618,
-          lng: -46.6565
+          lat: -26.3051,
+          lng: -48.8420
         }
       },
       workingHours: {
@@ -143,13 +143,13 @@ const workshopsData = [
       cnpj: '55.555.555/0001-55',
       description: 'Oficina de bairro com preços acessíveis e atendimento personalizado. Especializada em reparos rápidos e manutenção básica.',
       address: {
-        street: 'Rua Augusta, 789',
-        city: 'São Paulo',
-        state: 'SP',
-        zipCode: '01305-100',
+        street: 'Rua XV de Novembro, 789',
+        city: 'Joinville',
+        state: 'SC',
+        zipCode: '89203-003',
         coordinates: {
-          lat: -23.5489,
-          lng: -46.6388
+          lat: -26.3058,
+          lng: -48.8354
         }
       },
       workingHours: {
@@ -206,13 +206,13 @@ const workshopsData = [
       cnpj: '77.777.777/0001-77',
       description: 'Oficina premium especializada em bikes importadas e de alta qualidade. Técnicos certificados e peças originais.',
       address: {
-        street: 'Rua Oscar Freire, 321',
-        city: 'São Paulo',
-        state: 'SP',
-        zipCode: '01426-001',
+        street: 'Rua Princesa Isabel, 321',
+        city: 'Joinville',
+        state: 'SC',
+        zipCode: '89204-004',
         coordinates: {
-          lat: -23.5693,
-          lng: -46.6658
+          lat: -26.3065,
+          lng: -48.8288
         }
       },
       workingHours: {
@@ -269,13 +269,13 @@ const workshopsData = [
       cnpj: '99.999.999/0001-99',
       description: 'Especialistas em mountain bikes e bikes de trilha. Equipamentos para aventureiros e esportistas radicais.',
       address: {
-        street: 'Av. Rebouças, 1500',
-        city: 'São Paulo',
-        state: 'SP',
-        zipCode: '05402-100',
+        street: 'Av. Santos Dumont, 1500',
+        city: 'Joinville',
+        state: 'SC',
+        zipCode: '89205-005',
         coordinates: {
-          lat: -23.5629,
-          lng: -46.6731
+          lat: -26.3072,
+          lng: -48.8222
         }
       },
       workingHours: {
