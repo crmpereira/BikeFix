@@ -2,8 +2,12 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    // Usar URI padrão local se não estiver definida
-    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/bikefix';
+    // Priorizar MongoDB Atlas em produção, fallback para local em desenvolvimento
+    const mongoURI = process.env.MONGODB_ATLAS_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/bikefix';
+    
+    // Log da configuração (sem expor credenciais)
+    const safeUri = mongoURI.replace(/:\/\/([^:]+):([^@]+)@/, '://***:***@');
+    console.log(`🔗 Conectando ao MongoDB: ${safeUri}`);
     
     const conn = await mongoose.connect(mongoURI);
 
