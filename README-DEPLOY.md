@@ -16,7 +16,20 @@
 
 ## 🗄️ Configuração do Banco de Dados
 
-### MongoDB Atlas
+### MongoDB Atlas (RECOMENDADO)
+
+1. **Configurar MongoDB Atlas**:
+   - Siga o guia completo em `MONGODB-ATLAS-SETUP.md`
+   - Crie cluster `bikefix-production`
+   - Configure usuário `bikefix-app`
+   - Obtenha string de conexão
+
+2. **String de Conexão**:
+   ```
+   mongodb+srv://bikefix-app:SENHA@bikefix-production.xxxxx.mongodb.net/bikefix?retryWrites=true&w=majority
+   ```
+
+### Configuração Detalhada do MongoDB Atlas
 1. Acesse [MongoDB Atlas](https://cloud.mongodb.com)
 2. Crie um novo cluster (Free Tier M0)
 3. Configure o usuário do banco:
@@ -28,6 +41,20 @@
    ```
    mongodb+srv://bikefix-app:<password>@cluster0.xxxxx.mongodb.net/bikefix?retryWrites=true&w=majority
    ```
+
+### PostgreSQL no Render (ALTERNATIVO)
+
+1. **Criar Banco de Dados**:
+   - No dashboard do Render, clique em "New +"
+   - Selecione "PostgreSQL"
+   - Configure:
+     - Name: `bikefix-database`
+     - Plan: Free
+     - Region: Oregon (US West)
+
+2. **Obter String de Conexão**:
+   - Após criação, copie a "External Database URL"
+   - Formato: `postgresql://user:pass@host:port/database`
 
 ## 🌐 Deploy no Render
 

@@ -25,6 +25,10 @@ services:
         value: 10000
       - key: MONGODB_URI
         sync: false  # Será configurado manualmente no dashboard
+      - key: MONGODB_ATLAS_URI
+        sync: false  # String de conexão do MongoDB Atlas para produção
+      - key: MONGODB_TEST_URI
+        value: mongodb://localhost:27017/bikefix
       - key: JWT_SECRET
         sync: false  # Será configurado manualmente no dashboard
       - key: JWT_EXPIRES_IN
