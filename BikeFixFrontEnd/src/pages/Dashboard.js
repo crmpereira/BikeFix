@@ -26,6 +26,9 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Avatar,
+  Divider,
+  Badge,
 } from '@mui/material';
 import {
   Build,
@@ -62,6 +65,8 @@ const Dashboard = () => {
   const [cancelling, setCancelling] = useState(false);
 
   const [notifications, setNotifications] = useState([]);
+  const [workshopDetailsOpen, setWorkshopDetailsOpen] = useState(false);
+  const [selectedWorkshop, setSelectedWorkshop] = useState(null);
 
   // Redirecionar para login se não estiver autenticado
   useEffect(() => {
@@ -266,6 +271,16 @@ const Dashboard = () => {
     setCancelDialogOpen(false);
     setCancelReason('');
     setSelectedAppointment(null);
+  };
+
+  const handleWorkshopDetails = (workshop) => {
+    setSelectedWorkshop(workshop);
+    setWorkshopDetailsOpen(true);
+  };
+
+  const closeWorkshopDetails = () => {
+    setWorkshopDetailsOpen(false);
+    setSelectedWorkshop(null);
   };
 
   return (
@@ -596,7 +611,7 @@ const Dashboard = () => {
                             </Typography>
                             
                             <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              📅 {new Date(appointment.appointmentDate || appointment.date).toLocaleDateString('pt-BR')} às {appointment.appointmentTime || appointment.time}
+                              📅 Data Agendada: {new Date(appointment.appointmentDate || appointment.date).toLocaleDateString('pt-BR')}
                             </Typography>
                           </Box>
                           
@@ -742,8 +757,7 @@ const Dashboard = () => {
                           variant="contained"
                           size="small"
                           fullWidth
-                          component={Link}
-                          to={`/workshop/${workshop.id}`}
+                          onClick={() => handleWorkshopDetails(workshop)}
                           sx={{
                             borderRadius: 2,
                             textTransform: 'none',
@@ -969,6 +983,224 @@ const Dashboard = () => {
             >
               {cancelling ? <CircularProgress size={20} /> : 'Cancelar Agendamento'}
             </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Modal de Detalhes da Oficina */}
+        <Dialog 
+          open={workshopDetailsOpen} 
+          onClose={closeWorkshopDetails} 
+          maxWidth="md" 
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 3,
+              maxHeight: '90vh'
+            }
+          }}
+        >
+          <DialogTitle sx={{ 
+            pb: 2,
+            background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2
+          }}>
+            <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)' }}>
+              <Build />
+            </Avatar>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                {selectedWorkshop?.name}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Detalhes da Oficina
+              </Typography>
+            </Box>
+          </DialogTitle>
+          
+          <DialogContent sx={{ p: 0 }}>
+            {selectedWorkshop && (
+              <Box>
+                {/* Header com informações principais */}
+                <Box sx={{ p: 3, bgcolor: '#f8f9fa' }}>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={8}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <Rating value={selectedWorkshop.rating || 0} readOnly sx={{ mr: 1 }} />
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                          {selectedWorkshop.rating || 0} ({selectedWorkshop.reviewCount || 0} avaliações)
+                        </Typography>
+                      </Box>
+                      
+                      <Typography variant="body1" color="text.secondary" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                        📍 {selectedWorkshop.address && typeof selectedWorkshop.address === 'object'
+                          ? `${selectedWorkshop.address.street}, ${selectedWorkshop.address.city} - ${selectedWorkshop.address.state}`
+                          : selectedWorkshop.address}
+                      </Typography>
+                      
+                      {selectedWorkshop.distance && (
+                        <Typography variant="body1" color="primary.main" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                          📏 Distância: {selectedWorkshop.distance.toFixed(1)} km
+                        </Typography>
+                      )}
+                    </Grid>
+                    
+                    <Grid item xs={12} md={4}>
+                      <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'white', borderRadius: 2 }}>
+                        <Typography variant="h6" color="primary.main" sx={{ fontWeight: 600, mb: 1 }}>
+                          Status
+                        </Typography>
+                        <Chip 
+                          label={selectedWorkshop.isOpen ? 'Aberto' : 'Fechado'}
+                          color={selectedWorkshop.isOpen ? 'success' : 'error'}
+                          sx={{ fontWeight: 600 }}
+                        />
+                      </Paper>
+                    </Grid>
+                  </Grid>
+                </Box>
+                
+                <Divider />
+                
+                {/* Informações de contato */}
+                <Box sx={{ p: 3 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    📞 Informações de Contato
+                  </Typography>
+                  
+                  <Grid container spacing={2}>
+                    {selectedWorkshop.phone && (
+                      <Grid item xs={12} sm={6}>
+                        <Paper sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
+                          <Typography variant="subtitle2" color="text.secondary">Telefone</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 600 }}>{selectedWorkshop.phone}</Typography>
+                        </Paper>
+                      </Grid>
+                    )}
+                    
+                    {selectedWorkshop.email && (
+                      <Grid item xs={12} sm={6}>
+                        <Paper sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
+                          <Typography variant="subtitle2" color="text.secondary">Email</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 600 }}>{selectedWorkshop.email}</Typography>
+                        </Paper>
+                      </Grid>
+                    )}
+                  </Grid>
+                </Box>
+                
+                <Divider />
+                
+                {/* Horário de funcionamento */}
+                {selectedWorkshop.workingHours && (
+                  <Box sx={{ p: 3 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      🕒 Horário de Funcionamento
+                    </Typography>
+                    
+                    <Paper sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
+                      <Grid container spacing={1}>
+                        {Object.entries(selectedWorkshop.workingHours).map(([day, hours]) => (
+                          <Grid item xs={12} sm={6} key={day}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 600, textTransform: 'capitalize' }}>
+                                {day}:
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {hours.isOpen ? `${hours.open} - ${hours.close}` : 'Fechado'}
+                              </Typography>
+                            </Box>
+                          </Grid>
+                        ))}
+                      </Grid>
+                    </Paper>
+                  </Box>
+                )}
+                
+                <Divider />
+                
+                {/* Serviços oferecidos */}
+                {selectedWorkshop.services && selectedWorkshop.services.length > 0 && (
+                  <Box sx={{ p: 3 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      🔧 Serviços Oferecidos
+                    </Typography>
+                    
+                    <Grid container spacing={1}>
+                      {selectedWorkshop.services.map((service, index) => (
+                        <Grid item key={index}>
+                          <Chip 
+                            label={service.name || service}
+                            variant="outlined"
+                            sx={{ 
+                              borderRadius: 2,
+                              fontWeight: 500
+                            }}
+                          />
+                        </Grid>
+                      ))}
+                    </Grid>
+                  </Box>
+                )}
+                
+                {/* Descrição */}
+                {selectedWorkshop.description && (
+                  <Box sx={{ p: 3, bgcolor: '#f8f9fa' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      📝 Sobre a Oficina
+                    </Typography>
+                    <Typography variant="body1" sx={{ lineHeight: 1.6 }}>
+                      {selectedWorkshop.description}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            )}
+          </DialogContent>
+          
+          <DialogActions sx={{ p: 3, gap: 2 }}>
+            <Button 
+              onClick={closeWorkshopDetails}
+              variant="outlined"
+              sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+            >
+              Fechar
+            </Button>
+            {selectedWorkshop?.id && (
+              <Button
+                variant="contained"
+                component={Link}
+                to={`/workshops/${selectedWorkshop.id}`}
+                onClick={closeWorkshopDetails}
+                sx={{ 
+                  borderRadius: 2, 
+                  textTransform: 'none', 
+                  fontWeight: 600,
+                  px: 3
+                }}
+              >
+                Ver Página Completa
+              </Button>
+            )}
+            {selectedWorkshop?.id && (
+              <Button
+                variant="contained"
+                color="success"
+                component={Link}
+                to={`/appointment?workshop=${selectedWorkshop.id}`}
+                onClick={closeWorkshopDetails}
+                sx={{ 
+                  borderRadius: 2, 
+                  textTransform: 'none', 
+                  fontWeight: 600,
+                  px: 3
+                }}
+              >
+                Agendar Serviço
+              </Button>
+            )}
           </DialogActions>
         </Dialog>
       </Container>

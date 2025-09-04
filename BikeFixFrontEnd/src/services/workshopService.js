@@ -162,7 +162,7 @@ const workshopService = {
   // Formatar dados da oficina para compatibilidade com o frontend
   formatWorkshopForFrontend(workshop) {
     return {
-      id: workshop.id,
+      id: workshop.id || workshop._id,
       name: workshop.name,
       owner: workshop.owner,
       email: workshop.email,

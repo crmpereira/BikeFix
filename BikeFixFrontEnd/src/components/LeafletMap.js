@@ -30,13 +30,21 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Ícone customizado para oficinas
+// Ícone customizado para oficinas (com bicicleta)
 const workshopIcon = new L.Icon({
   iconUrl: 'data:image/svg+xml;base64,' + btoa(`
     <svg width="30" height="45" viewBox="0 0 30 45" xmlns="http://www.w3.org/2000/svg">
       <path fill="#1976d2" stroke="#fff" stroke-width="2" d="M15 0C6.7 0 0 6.7 0 15c0 15 15 30 15 30s15-15 15-30C30 6.7 23.3 0 15 0z"/>
       <circle fill="#fff" cx="15" cy="15" r="8"/>
-      <path fill="#1976d2" d="M15 8l-3 3h6l-3-3zm-4 5h8v8h-8v-8z"/>
+      <!-- Bicicleta -->
+      <g fill="#1976d2" transform="translate(8, 8)">
+        <!-- Rodas -->
+        <circle cx="3" cy="10" r="2.5" fill="none" stroke="#1976d2" stroke-width="1"/>
+        <circle cx="11" cy="10" r="2.5" fill="none" stroke="#1976d2" stroke-width="1"/>
+        <!-- Quadro -->
+        <path d="M3 10 L7 6 L11 10 M7 6 L7 4 M6 4 L8 4" stroke="#1976d2" stroke-width="1" fill="none"/>
+        <path d="M7 6 L9 8" stroke="#1976d2" stroke-width="1"/>
+      </g>
       <circle fill="#4caf50" cx="24" cy="6" r="4" stroke="#fff" stroke-width="1"/>
     </svg>
   `),
@@ -45,13 +53,23 @@ const workshopIcon = new L.Icon({
   popupAnchor: [1, -40],
 });
 
-// Ícone para oficinas com alta avaliação
+// Ícone para oficinas com alta avaliação (com bicicleta dourada)
 const premiumWorkshopIcon = new L.Icon({
   iconUrl: 'data:image/svg+xml;base64,' + btoa(`
     <svg width="30" height="45" viewBox="0 0 30 45" xmlns="http://www.w3.org/2000/svg">
       <path fill="#ff9800" stroke="#fff" stroke-width="2" d="M15 0C6.7 0 0 6.7 0 15c0 15 15 30 15 30s15-15 15-30C30 6.7 23.3 0 15 0z"/>
       <circle fill="#fff" cx="15" cy="15" r="8"/>
-      <path fill="#ff9800" d="M15 6l2 4h4l-3 3 1 4-4-2-4 2 1-4-3-3h4l2-4z"/>
+      <!-- Bicicleta Premium -->
+      <g fill="#ff9800" transform="translate(8, 8)">
+        <!-- Rodas -->
+        <circle cx="3" cy="10" r="2.5" fill="none" stroke="#ff9800" stroke-width="1"/>
+        <circle cx="11" cy="10" r="2.5" fill="none" stroke="#ff9800" stroke-width="1"/>
+        <!-- Quadro -->
+        <path d="M3 10 L7 6 L11 10 M7 6 L7 4 M6 4 L8 4" stroke="#ff9800" stroke-width="1" fill="none"/>
+        <path d="M7 6 L9 8" stroke="#ff9800" stroke-width="1"/>
+      </g>
+      <!-- Estrela de qualidade -->
+      <path fill="#ffd700" d="M15 5l1 2h2l-1.5 1.5 0.5 2-2-1-2 1 0.5-2L12 7h2l1-2z" transform="scale(0.6) translate(10, 2)"/>
     </svg>
   `),
   iconSize: [30, 45],
@@ -59,16 +77,24 @@ const premiumWorkshopIcon = new L.Icon({
   popupAnchor: [1, -40],
 });
 
-// Ícone para localização do usuário
+// Ícone para localização do usuário (com bicicleta)
 const userIcon = new L.Icon({
   iconUrl: 'data:image/svg+xml;base64,' + btoa(`
-    <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-      <circle fill="#4285f4" stroke="#fff" stroke-width="3" cx="10" cy="10" r="8"/>
-      <circle fill="#fff" cx="10" cy="10" r="3"/>
+    <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <circle fill="#4285f4" stroke="#fff" stroke-width="3" cx="12" cy="12" r="10"/>
+      <!-- Bicicleta do usuário -->
+      <g fill="#fff" transform="translate(6, 6)">
+        <!-- Rodas -->
+        <circle cx="3" cy="8" r="2" fill="none" stroke="#fff" stroke-width="1"/>
+        <circle cx="9" cy="8" r="2" fill="none" stroke="#fff" stroke-width="1"/>
+        <!-- Quadro -->
+        <path d="M3 8 L6 4 L9 8 M6 4 L6 2 M5 2 L7 2" stroke="#fff" stroke-width="1" fill="none"/>
+        <path d="M6 4 L8 6" stroke="#fff" stroke-width="1"/>
+      </g>
     </svg>
   `),
-  iconSize: [20, 20],
-  iconAnchor: [10, 10],
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
 });
 
 // Componente para ajustar o mapa quando as oficinas mudarem

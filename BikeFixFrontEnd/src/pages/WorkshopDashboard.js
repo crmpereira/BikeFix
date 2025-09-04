@@ -54,6 +54,8 @@ import {
   Star,
   Assignment,
   PriorityHigh,
+  Check,
+  Close,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -67,6 +69,7 @@ const WorkshopDashboard = () => {
   const [tabValue, setTabValue] = useState(0);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [actionModalOpen, setActionModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(false);
   const [appointments, setAppointments] = useState([]);
@@ -179,6 +182,7 @@ const WorkshopDashboard = () => {
       await appointmentService.updateAppointmentStatus(appointmentId, newStatus);
       toast.success('Status atualizado com sucesso!');
       setDialogOpen(false);
+      setActionModalOpen(false);
       // Recarregar agendamentos
       loadWorkshopAppointments();
     } catch (error) {
@@ -187,6 +191,59 @@ const WorkshopDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAcceptAppointment = async (appointment) => {
+    try {
+      setLoading(true);
+      const result = await appointmentService.updateAppointmentStatus(
+        appointment.id || appointment._id, 
+        'confirmed', 
+        'Agendamento aceito pela oficina'
+      );
+      
+      if (result.success) {
+        toast.success('Agendamento aceito com sucesso!');
+        setActionModalOpen(false);
+        loadWorkshopAppointments();
+      } else {
+        toast.error(result.message || 'Erro ao aceitar agendamento');
+      }
+    } catch (error) {
+      console.error('Erro ao aceitar agendamento:', error);
+      toast.error('Erro ao aceitar agendamento');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRejectAppointment = async (appointment) => {
+    try {
+      setLoading(true);
+      const result = await appointmentService.updateAppointmentStatus(
+        appointment.id || appointment._id, 
+        'cancelled', 
+        'Agendamento rejeitado pela oficina'
+      );
+      
+      if (result.success) {
+        toast.success('Agendamento rejeitado!');
+        setActionModalOpen(false);
+        loadWorkshopAppointments();
+      } else {
+        toast.error(result.message || 'Erro ao rejeitar agendamento');
+      }
+    } catch (error) {
+      console.error('Erro ao rejeitar agendamento:', error);
+      toast.error('Erro ao rejeitar agendamento');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenActionModal = (appointment) => {
+    setSelectedAppointment(appointment);
+    setActionModalOpen(true);
   };
 
   const getStatusColor = (status) => {
@@ -376,19 +433,34 @@ const WorkshopDashboard = () => {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Cliente</TableCell>
+                    <TableCell>Ciclista</TableCell>
                     <TableCell>Serviço</TableCell>
-                    <TableCell>Horário</TableCell>
                     <TableCell>Status</TableCell>
                     <TableCell>Ações</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {appointments.slice(0, 3).map((appointment) => (
-                    <TableRow key={appointment._id}>
-                      <TableCell>{appointment.cyclist?.name || appointment.customerName}</TableCell>
-                      <TableCell>{appointment.serviceType || appointment.service}</TableCell>
-                      <TableCell>{appointment.appointmentTime || appointment.time}</TableCell>
+                  {appointments.filter(apt => {
+                    const today = new Date().toISOString().split('T')[0];
+                    const aptDate = new Date(apt.appointmentDate || apt.date).toISOString().split('T')[0];
+                    return aptDate === today;
+                  }).slice(0, 3).map((appointment) => (
+                    <TableRow key={appointment._id || appointment.id}>
+                      <TableCell>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {appointment.cyclist?.name || appointment.customerName || 'Nome não informado'}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {appointment.cyclist?.phone || appointment.customerPhone || 'Telefone não informado'}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {appointment.serviceType || appointment.service || appointment.requestedServices?.map(s => s.name).join(', ') || 'Serviço não especificado'}
+                        </Typography>
+                      </TableCell>
                       <TableCell>
                         <Chip
                           label={getStatusLabel(appointment.status)}
@@ -399,10 +471,30 @@ const WorkshopDashboard = () => {
                       <TableCell>
                         <IconButton
                           size="small"
-                          onClick={() => handleViewAppointment(appointment)}
+                          onClick={() => handleOpenActionModal(appointment)}
                         >
                           <Visibility />
                         </IconButton>
+                        {appointment.status === 'pending' && (
+                          <>
+                            <IconButton
+                              size="small"
+                              color="success"
+                              onClick={() => handleAcceptAppointment(appointment)}
+                              disabled={loading}
+                            >
+                              <Check />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => handleRejectAppointment(appointment)}
+                              disabled={loading}
+                            >
+                              <Close />
+                            </IconButton>
+                          </>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -539,10 +631,10 @@ const WorkshopDashboard = () => {
                     )}
                     <Box>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {appointment.cyclist?.name || appointment.customerName || 'N/A'}
+                        {appointment.cyclist?.name || appointment.customerName || 'Cliente não identificado'}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {appointment.cyclist?.phone || appointment.customerPhone || 'N/A'}
+                        {appointment.cyclist?.phone || appointment.customerPhone || 'Telefone não informado'}
                       </Typography>
                     </Box>
                   </Box>
@@ -550,7 +642,7 @@ const WorkshopDashboard = () => {
                 <TableCell>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography variant="body2">
-                      {appointment.service}
+                      {appointment.service || appointment.serviceType || appointment.requestedServices?.map(s => s.name).join(', ') || 'Serviço não especificado'}
                     </Typography>
                     {appointment.urgency === 'high' && (
                       <Chip label="URGENTE" color="error" size="small" sx={{ fontWeight: 600 }} />
@@ -560,14 +652,26 @@ const WorkshopDashboard = () => {
                 <TableCell>
                   <Box>
                     <Typography variant="body2">
-                      {new Date(appointment.date).toLocaleDateString('pt-BR')}
+                      {appointment.appointmentDate || appointment.date ? 
+                        new Date(appointment.appointmentDate || appointment.date).toLocaleDateString('pt-BR') : 
+                        'Data não informada'
+                      }
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {appointment.time}
+                      {appointment.appointmentTime || appointment.time || 'Horário não informado'}
                     </Typography>
                   </Box>
                 </TableCell>
-                <TableCell>{appointment.bikeInfo?.model || appointment.bikeModel || 'N/A'}</TableCell>
+                <TableCell>
+                  <Typography variant="body2">
+                    {appointment.bikeInfo?.model || appointment.bikeModel || appointment.bike?.model || 'Bike não especificada'}
+                  </Typography>
+                  {(appointment.bikeInfo?.brand || appointment.bike?.brand) && (
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      {appointment.bikeInfo?.brand || appointment.bike?.brand}
+                    </Typography>
+                  )}
+                </TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     {appointment.urgency === 'high' && (
@@ -590,17 +694,40 @@ const WorkshopDashboard = () => {
                     size="small"
                   />
                 </TableCell>
-                <TableCell>R$ {appointment.totalPrice || appointment.price || 0}</TableCell>
+                <TableCell>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    R$ {(appointment.totalPrice || appointment.price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </Typography>
+                </TableCell>
                 <TableCell>
                   <IconButton
                     size="small"
-                    onClick={() => handleViewAppointment(appointment)}
+                    onClick={() => handleOpenActionModal(appointment)}
                   >
                     <Visibility />
                   </IconButton>
-                  <IconButton size="small">
-                    <Edit />
-                  </IconButton>
+                  {appointment.status === 'pending' && (
+                    <>
+                      <IconButton
+                        size="small"
+                        color="success"
+                        onClick={() => handleAcceptAppointment(appointment)}
+                        disabled={loading}
+                        title="Aceitar agendamento"
+                      >
+                        <Check />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => handleRejectAppointment(appointment)}
+                        disabled={loading}
+                        title="Rejeitar agendamento"
+                      >
+                        <Close />
+                      </IconButton>
+                    </>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -643,6 +770,74 @@ const WorkshopDashboard = () => {
           </Typography>
         </Box>
       )}
+
+      {/* Modal de Ações para Agendamentos */}
+      <Dialog open={actionModalOpen} onClose={() => setActionModalOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Ações do Agendamento
+        </DialogTitle>
+        <DialogContent>
+          {selectedAppointment && (
+            <Box sx={{ py: 2 }}>
+              <Typography variant="h6" gutterBottom>
+                {selectedAppointment.cyclist?.name || selectedAppointment.customerName || 'Cliente não identificado'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Serviço: {selectedAppointment.service || selectedAppointment.serviceType || 'Não especificado'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Data: {selectedAppointment.appointmentDate || selectedAppointment.date ? 
+                  new Date(selectedAppointment.appointmentDate || selectedAppointment.date).toLocaleDateString('pt-BR') : 
+                  'Não informada'
+                }
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Horário: {selectedAppointment.appointmentTime || selectedAppointment.time || 'Não informado'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Status: <Chip 
+                  label={getStatusLabel(selectedAppointment.status)} 
+                  color={getStatusColor(selectedAppointment.status)} 
+                  size="small" 
+                />
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setActionModalOpen(false)}>
+            Fechar
+          </Button>
+          <Button 
+            onClick={() => handleViewAppointment(selectedAppointment)}
+            variant="outlined"
+          >
+            Ver Detalhes
+          </Button>
+          {selectedAppointment?.status === 'pending' && (
+            <>
+              <Button 
+                onClick={() => handleAcceptAppointment(selectedAppointment)}
+                variant="contained"
+                color="success"
+                disabled={loading}
+                startIcon={<Check />}
+              >
+                Aceitar
+              </Button>
+              <Button 
+                onClick={() => handleRejectAppointment(selectedAppointment)}
+                variant="contained"
+                color="error"
+                disabled={loading}
+                startIcon={<Close />}
+              >
+                Rejeitar
+              </Button>
+            </>
+          )}
+        </DialogActions>
+      </Dialog>
 
       {/* Dialog para visualizar agendamento */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>

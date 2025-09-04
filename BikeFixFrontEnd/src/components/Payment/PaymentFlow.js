@@ -172,8 +172,7 @@ const PaymentFlow = ({ appointment, userType, onStatusChange }) => {
           <Alert severity="success">
             <Typography variant="h6">Agendamento Confirmado</Typography>
             <Typography>
-              Seu agendamento foi confirmado para {appointmentService.formatDateForDisplay(appointment.date)} 
-              às {appointmentService.formatTimeForDisplay(appointment.time)}.
+              Seu agendamento foi confirmado para {appointmentService.formatDateForDisplay(appointment.date)}.
             </Typography>
             <Typography sx={{ mt: 1 }}>
               Aguarde a oficina enviar o orçamento para os serviços solicitados.
@@ -287,8 +286,7 @@ const PaymentFlow = ({ appointment, userType, onStatusChange }) => {
               <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
                 <Typography variant="subtitle2" color="text.secondary">Detalhes do Agendamento</Typography>
                 <Typography><strong>Oficina:</strong> {appointment.workshop?.name}</Typography>
-                <Typography><strong>Data:</strong> {appointmentService.formatDateForDisplay(appointment.date)}</Typography>
-                <Typography><strong>Horário:</strong> {appointmentService.formatTimeForDisplay(appointment.time)}</Typography>
+                <Typography><strong>Data Agendada:</strong> {appointmentService.formatDateForDisplay(appointment.date)}</Typography>
                 <Typography><strong>Serviço:</strong> {appointment.serviceType}</Typography>
                 {appointment.urgency && (
                   <Typography><strong>Urgência:</strong> {appointmentService.getUrgencyLabel(appointment.urgency)}</Typography>

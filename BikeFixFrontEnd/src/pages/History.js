@@ -394,10 +394,7 @@ const History = () => {
                     <TableCell>
                       <Box>
                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {formatDate(appointment.date)}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {appointment.time}
+                          Data Agendada: {formatDate(appointment.date)}
                         </Typography>
                       </Box>
                     </TableCell>
@@ -475,10 +472,10 @@ const History = () => {
                 </Typography>
                 
                 <Typography variant="subtitle2" gutterBottom>
-                  Data e Horário
+                  Data Agendada
                 </Typography>
                 <Typography variant="body1" sx={{ mb: 2 }}>
-                  {formatDate(selectedAppointment.date)} às {selectedAppointment.time}
+                  {formatDate(selectedAppointment.date)}
                 </Typography>
                 
                 <Typography variant="subtitle2" gutterBottom>

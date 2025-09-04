@@ -188,9 +188,9 @@ const AppointmentDetail = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                     <CalendarToday sx={{ mr: 1, color: 'text.secondary' }} />
                     <Box>
-                      <Typography variant="body2" color="text.secondary">Data e Horário</Typography>
+                      <Typography variant="body2" color="text.secondary">Data Agendada</Typography>
                       <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                        {new Date(appointment.appointmentDate).toLocaleDateString('pt-BR')} às {appointment.appointmentTime}
+                        {new Date(appointment.appointmentDate).toLocaleDateString('pt-BR')}
                       </Typography>
                     </Box>
                   </Box>
@@ -219,7 +219,7 @@ const AppointmentDetail = () => {
                           </ListItemIcon>
                           <ListItemText
                             primary={service.name}
-                            secondary={`R$ ${service.price}`}
+                            secondary={`R$ ${service.basePrice || service.price}`}
                           />
                         </ListItem>
                       ))}

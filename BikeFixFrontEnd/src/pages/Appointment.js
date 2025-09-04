@@ -48,6 +48,7 @@ import workshopService from '../services/workshopService';
 import appointmentService from '../services/appointmentService';
 import bikeService from '../services/bikeService';
 import { formatAddressCompact } from '../utils/addressFormatter';
+import BikeModal from '../components/BikeModal';
 
 const Appointment = () => {
   const { user } = useAuth();
@@ -67,11 +68,22 @@ const Appointment = () => {
     urgency: 'medium',
     description: ''
   });
+  const [bikeModalOpen, setBikeModalOpen] = useState(false);
+
+  const handleBikeAdded = (newBike) => {
+    // Recarregar as bikes do usuário
+    loadUserBikes();
+    // Fechar o modal
+    setBikeModalOpen(false);
+    // Mostrar mensagem de sucesso
+    toast.success('Bike cadastrada com sucesso!');
+  };
 
   const steps = [
     'Selecionar Oficina',
     'Escolher Serviços',
     'Data e Horário',
+    'Nível de Urgência',
     'Selecionar Bikes',
     'Confirmação'
   ];
@@ -129,12 +141,6 @@ const Appointment = () => {
 
   const handleNext = () => {
     // Validações específicas para cada step
-    if (userBikes.length === 0) {
-      toast.error('Você precisa cadastrar pelo menos uma bike antes de agendar um serviço.');
-      navigate('/my-bike');
-      return;
-    }
-
     if (activeStep === 0 && !selectedWorkshop) {
       toast.error('Selecione uma oficina');
       return;
@@ -147,22 +153,26 @@ const Appointment = () => {
       toast.error('Selecione data e horário');
       return;
     }
+    if (activeStep === 3 && !appointmentData.urgency) {
+      toast.error('Selecione o nível de urgência');
+      return;
+    }
+    if (activeStep === 4) {
+      if (userBikes.length === 0) {
+        toast.error('Você precisa cadastrar pelo menos uma bike antes de agendar um serviço.');
+        setBikeModalOpen(true);
+        return;
+      }
+      if (selectedBikes.length === 0) {
+        toast.error('Selecione pelo menos uma bike');
+        return;
+      }
+    }
     
     setActiveStep((prevActiveStep) => prevActiveStep + 1);
   };
 
-  const formatDuration = (totalMinutes) => {
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    
-    if (hours === 0) {
-      return `${minutes}min`;
-    } else if (minutes === 0) {
-      return `${hours}h`;
-    } else {
-      return `${hours}h ${minutes}min`;
-    }
-  };
+
 
   const handleBack = () => {
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
@@ -172,7 +182,7 @@ const Appointment = () => {
     setLoading(true);
     if (userBikes.length === 0) {
       toast.error('Você precisa cadastrar pelo menos uma bike antes de agendar um serviço.');
-      navigate('/my-bike');
+      setBikeModalOpen(true);
       setLoading(false);
       return;
     }
@@ -180,12 +190,12 @@ const Appointment = () => {
     try {
       const appointmentPayload = {
         workshopId: selectedWorkshop._id,
-        date: appointmentData.date,
-        time: appointmentData.time,
+        appointmentDate: appointmentData.date,
+        appointmentTime: appointmentData.time,
         urgency: appointmentData.urgency,
         requestedServices: selectedServices.map(service => ({
           name: service.name,
-          price: service.price,
+          price: service.basePrice || service.price,
           estimatedTime: service.estimatedTime
         })),
         bikeInfo: {
@@ -459,15 +469,10 @@ const Appointment = () => {
                                   fontWeight: 700
                                 }}
                               >
-                                R$ {service.price}
+                                R$ {service.basePrice || service.price}
                               </Typography>
                             </Box>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Schedule sx={{ color: '#666', fontSize: 20 }} />
-                              <Typography variant="body2" color="text.secondary">
-                                {service.estimatedTime} min
-                              </Typography>
-                            </Box>
+
                           </Box>
                         </CardContent>
                       </Card>
@@ -502,11 +507,9 @@ const Appointment = () => {
                         </Typography>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Typography variant="body2" color="text.secondary">
-                            R$ {service.price}
+                            R$ {service.basePrice || service.price}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {service.estimatedTime} min
-                          </Typography>
+
                         </Box>
                       </Box>
                     </Grid>
@@ -524,11 +527,9 @@ const Appointment = () => {
                     alignItems: 'center'
                   }}>
                     <Typography variant="h6" sx={{ fontWeight: 700, color: '#1976d2' }}>
-                      Total: R$ {selectedServices.reduce((sum, service) => sum + parseFloat(service.price), 0).toFixed(2)}
+                      Total: R$ {selectedServices.reduce((sum, service) => sum + parseFloat(service.basePrice || service.price), 0).toFixed(2)}
                     </Typography>
-                    <Typography variant="body1" sx={{ color: '#1976d2', fontWeight: 600 }}>
-                      Tempo estimado: {formatDuration(selectedServices.reduce((sum, service) => sum + service.estimatedTime, 0))}
-                    </Typography>
+
                   </Box>
                 )}
               </Paper>
@@ -616,6 +617,65 @@ const Appointment = () => {
             <Paper sx={{
               p: 3,
               mb: 3,
+              background: 'linear-gradient(135deg, #ff9800, #ffb74d)',
+              color: 'white',
+              borderRadius: 3
+            }}>
+              <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
+                ⚡ Nível de Urgência
+              </Typography>
+              <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                Selecione a urgência do seu serviço
+              </Typography>
+            </Paper>
+
+            <Grid container spacing={3}>
+              {[
+                { value: 'low', label: 'Baixa', description: 'Sem pressa, pode aguardar', color: '#4caf50', icon: '🟢' },
+                { value: 'medium', label: 'Média', description: 'Prazo normal de atendimento', color: '#ff9800', icon: '🟡' },
+                { value: 'high', label: 'Alta', description: 'Preciso com urgência', color: '#f44336', icon: '🔴' }
+              ].map((urgencyOption) => (
+                <Grid item xs={12} sm={4} key={urgencyOption.value}>
+                  <Paper
+                    sx={{
+                      p: 3,
+                      cursor: 'pointer',
+                      border: appointmentData.urgency === urgencyOption.value ? `2px solid ${urgencyOption.color}` : '1px solid #e0e0e0',
+                      borderRadius: 3,
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        borderColor: urgencyOption.color,
+                        transform: 'translateY(-2px)',
+                        boxShadow: `0 4px 12px ${urgencyOption.color}20`
+                      },
+                      bgcolor: appointmentData.urgency === urgencyOption.value ? `${urgencyOption.color}10` : 'white'
+                    }}
+                    onClick={() => setAppointmentData(prev => ({ ...prev, urgency: urgencyOption.value }))}
+                  >
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="h3" sx={{ mb: 1 }}>
+                        {urgencyOption.icon}
+                      </Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, color: urgencyOption.color }}>
+                        {urgencyOption.label}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {urgencyOption.description}
+                      </Typography>
+                    </Box>
+                  </Paper>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        );
+
+      case 4:
+        return (
+          <Box>
+            <Paper sx={{
+              p: 3,
+              mb: 3,
               background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
               color: 'white',
               borderRadius: 3
@@ -651,7 +711,7 @@ const Appointment = () => {
                   <Button
                     variant="contained"
                     startIcon={<Add />}
-                    onClick={() => navigate('/my-bike')}
+                    onClick={() => setBikeModalOpen(true)}
                     sx={{
                       borderRadius: 3,
                       px: 3,
@@ -853,7 +913,7 @@ const Appointment = () => {
           </Box>
         );
 
-      case 4:
+      case 5:
         return (
           <Box>
             <Paper sx={{
@@ -944,11 +1004,9 @@ const Appointment = () => {
                     }}>
                       <Typography variant="body1">{service.name}</Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          {service.estimatedTime} min
-                        </Typography>
+
                         <Typography variant="body1" sx={{ fontWeight: 600, color: '#4caf50' }}>
-                          R$ {service.price}
+                          R$ {service.basePrice || service.price}
                         </Typography>
                       </Box>
                     </Box>
@@ -967,11 +1025,9 @@ const Appointment = () => {
                       </Typography>
                       <Box sx={{ textAlign: 'right' }}>
                         <Typography variant="h6" sx={{ fontWeight: 700, color: '#4caf50' }}>
-                          R$ {selectedServices.reduce((sum, service) => sum + parseFloat(service.price), 0).toFixed(2)}
+                          R$ {selectedServices.reduce((sum, service) => sum + parseFloat(service.basePrice || service.price), 0).toFixed(2)}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Tempo estimado: {formatDuration(selectedServices.reduce((sum, service) => sum + service.estimatedTime, 0))}
-                        </Typography>
+
                       </Box>
                     </Box>
                   )}
@@ -1268,6 +1324,12 @@ const Appointment = () => {
           </Box>
         </Box>
       </Paper>
+      
+      <BikeModal
+        open={bikeModalOpen}
+        onClose={() => setBikeModalOpen(false)}
+        onBikeAdded={handleBikeAdded}
+      />
     </Container>
   );
 };

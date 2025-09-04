@@ -44,8 +44,8 @@ class BikeService {
   async getUserBikes() {
     try {
       const response = await api.get('/users/bikes');
-      // O interceptor já retorna response.data, então acessamos response.data diretamente
-      return response.data || [];
+      // O interceptor já retorna response.data, e o backend retorna { success: true, data: bikes }
+      return response;
     } catch (error) {
       console.error('Erro ao buscar bikes:', error);
       throw error;
@@ -55,7 +55,14 @@ class BikeService {
   // Adicionar nova bike
   async addBike(bikeData) {
     try {
-      const response = await api.post('/users/bikes', bikeData);
+      const validationErrors = this.validateBikeData(bikeData);
+      if (validationErrors.length > 0) {
+        throw new Error(validationErrors.join(', '));
+      }
+      
+      const formattedData = this.formatBikeData(bikeData);
+      
+      const response = await api.post('/users/bikes', formattedData);
       return response.data || response;
     } catch (error) {
       console.error('Erro ao adicionar bike:', error);
@@ -66,7 +73,14 @@ class BikeService {
   // Atualizar bike existente
   async updateBike(bikeId, bikeData) {
     try {
-      const response = await api.put(`/users/bikes/${bikeId}`, bikeData);
+      const validationErrors = this.validateBikeData(bikeData);
+      if (validationErrors.length > 0) {
+        throw new Error(validationErrors.join(', '));
+      }
+      
+      const formattedData = this.formatBikeData(bikeData);
+      
+      const response = await api.put(`/users/bikes/${bikeId}`, formattedData);
       return response.data || response;
     } catch (error) {
       console.error('Erro ao atualizar bike:', error);

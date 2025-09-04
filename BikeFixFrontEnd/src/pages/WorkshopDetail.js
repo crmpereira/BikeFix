@@ -126,7 +126,7 @@ const WorkshopDetail = () => {
     setTabValue(newValue);
   };
 
-  const handleAppointmentSubmit = () => {
+  const handleAppointmentSubmit = async () => {
     if (!user) {
       toast.error('Você precisa estar logado para agendar um serviço');
       navigate('/login');
@@ -138,10 +138,46 @@ const WorkshopDetail = () => {
       return;
     }
 
-    // Simular agendamento
-    toast.success('Agendamento solicitado com sucesso! A oficina entrará em contato para confirmar.');
-    setAppointmentDialogOpen(false);
-    setAppointmentData({ service: '', date: '', time: '', description: '' });
+    try {
+      setLoading(true);
+      
+      // Encontrar o serviço selecionado
+      const selectedService = workshop.services.find(s => s.name === appointmentData.service);
+      
+      const appointmentPayload = {
+        workshopId: workshop.id,
+        appointmentDate: appointmentData.date,
+        appointmentTime: appointmentData.time,
+        serviceType: 'specific',
+        requestedServices: [{
+          name: selectedService.name,
+          description: selectedService.description || '',
+          price: parseFloat(selectedService.basePrice || selectedService.price || 0),
+          estimatedTime: 60 // tempo padrão em minutos
+        }],
+        description: appointmentData.description || '',
+        urgency: 'medium',
+        bikeInfo: [],
+        bikeIds: []
+      };
+      
+      console.log('Enviando agendamento:', appointmentPayload);
+      
+      const result = await appointmentService.createAppointment(appointmentPayload);
+      
+      if (result.success) {
+        toast.success('Agendamento criado com sucesso! A oficina entrará em contato para confirmar.');
+        setAppointmentDialogOpen(false);
+        setAppointmentData({ service: '', date: '', time: '', description: '' });
+      } else {
+        toast.error(result.message || 'Erro ao criar agendamento');
+      }
+    } catch (error) {
+      console.error('Erro ao criar agendamento:', error);
+      toast.error('Erro ao criar agendamento. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const TabPanel = ({ children, value, index }) => {
@@ -470,7 +506,7 @@ const WorkshopDetail = () => {
                 >
                   {workshop.services && workshop.services.map((service) => (
                     <MenuItem key={service.id} value={service.name}>
-                      {service.name} - {service.price}
+                      {service.name} - {service.basePrice || service.price}
                     </MenuItem>
                   ))}
                 </Select>

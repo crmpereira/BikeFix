@@ -66,12 +66,11 @@ const MyBike = () => {
   const loadBikes = async () => {
     try {
       setLoading(true);
-      const bikesData = await bikeService.getUserBikes();
-      // Filtrar elementos undefined ou null
-      setBikes(bikesData.filter(bike => bike && typeof bike === 'object'));
+      const response = await bikeService.getUserBikes();
+      setBikes(response.data || []);
     } catch (error) {
       console.error('Erro ao carregar bikes:', error);
-      showAlert('Erro ao carregar suas bikes', 'error');
+      showAlert('Erro ao carregar suas bicicletas', 'error');
     } finally {
       setLoading(false);
     }
@@ -159,34 +158,26 @@ const MyBike = () => {
   };
 
   const handleSaveBike = async () => {
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     try {
-      // Validação
-      const errors = bikeService.validateBikeData(formData);
-      if (errors.length > 0) {
-        showAlert(errors[0], 'error');
-        return;
-      }
-
-      const bikeData = bikeService.formatBikeData(formData);
+      setLoading(true);
       
       if (editingBike) {
-        await bikeService.updateBike(editingBike._id, bikeData);
-        showAlert('Bike atualizada com sucesso!');
+        await bikeService.updateBike(editingBike.id, formData);
+        showAlert('Bicicleta atualizada com sucesso!', 'success');
       } else {
-        await bikeService.addBike(bikeData);
-        showAlert('Bike adicionada com sucesso!');
+        await bikeService.addBike(formData);
+        showAlert('Bicicleta adicionada com sucesso!', 'success');
       }
-      // Sempre recarregar a lista completa para garantir sincronização
-      await loadBikes();
+      
       handleCloseDialog();
+      loadBikes();
     } catch (error) {
       console.error('Erro ao salvar bike:', error);
-      const errorMessage = error.response?.data?.message || 'Erro ao salvar bike';
-      showAlert(errorMessage, 'error');
+      showAlert('Erro ao salvar bicicleta', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
