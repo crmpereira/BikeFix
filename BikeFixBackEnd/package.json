@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "start:prod": "node server-production.js",
-    "dev": "nodemon server-dev.js",
+    "dev": "nodemon server.js",
     "dev:full": "nodemon server.js",
     "seed": "node scripts/seedWorkshops.js",
     "migrate:prod": "node scripts/migrate-production.js",

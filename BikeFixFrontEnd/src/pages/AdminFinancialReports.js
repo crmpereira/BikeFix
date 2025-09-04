@@ -109,20 +109,20 @@ const AdminFinancialReports = () => {
       console.error('Erro ao carregar dados financeiros administrativos:', error);
       toast.error('Erro ao carregar relatórios administrativos');
       
-      // Dados mockados para demonstração
+      // Dados vazios em caso de erro
       setReportData({
         platformSummary: {
-          totalPlatformRevenue: 45750,
-          totalWorkshopRevenue: 412250,
-          totalTransactions: 1250,
-          activeWorkshops: 28,
-          averageCommissionRate: 10,
-          monthlyGrowth: 18.5
+          totalPlatformRevenue: 0,
+          totalWorkshopRevenue: 0,
+          totalTransactions: 0,
+          activeWorkshops: 0,
+          averageCommissionRate: 0,
+          monthlyGrowth: 0
         },
-        workshopRanking: generateMockWorkshopRanking(),
-        monthlyTrends: generateMockMonthlyTrends(),
-        commissionBreakdown: generateMockCommissionBreakdown(),
-        recentTransactions: generateMockRecentTransactions()
+        workshopRanking: [],
+        monthlyTrends: [],
+        commissionBreakdown: [],
+        recentTransactions: []
       });
     } finally {
       setLoading(false);
@@ -285,35 +285,7 @@ const AdminFinancialReports = () => {
       .sort((a, b) => b.platformRevenue - a.platformRevenue);
   };
 
-  // Funções para gerar dados mockados
-  const generateMockWorkshopRanking = () => [
-    { id: 1, name: 'BikeMax Pro', totalRevenue: 25000, platformFees: 2500, transactions: 85, averageTicket: 294 },
-    { id: 2, name: 'Oficina Central', totalRevenue: 22000, platformFees: 2200, transactions: 78, averageTicket: 282 },
-    { id: 3, name: 'Speed Bikes', totalRevenue: 18500, platformFees: 1850, transactions: 65, averageTicket: 285 },
-    { id: 4, name: 'Bike Service', totalRevenue: 16200, platformFees: 1620, transactions: 58, averageTicket: 279 },
-    { id: 5, name: 'Roda Livre', totalRevenue: 14800, platformFees: 1480, transactions: 52, averageTicket: 285 }
-  ];
 
-  const generateMockMonthlyTrends = () => [
-    { month: '2024-01', platformRevenue: 8500, workshopRevenue: 76500, transactions: 285 },
-    { month: '2024-02', platformRevenue: 9200, workshopRevenue: 82800, transactions: 312 },
-    { month: '2024-03', platformRevenue: 11800, workshopRevenue: 106200, transactions: 398 },
-    { month: '2024-04', platformRevenue: 12750, workshopRevenue: 114750, transactions: 425 }
-  ];
-
-  const generateMockCommissionBreakdown = () => [
-    { service: 'Manutenção Completa', platformRevenue: 15200, transactions: 152, percentage: 33.2 },
-    { service: 'Revisão Geral', platformRevenue: 11800, transactions: 118, percentage: 25.8 },
-    { service: 'Troca de Pneu', platformRevenue: 8500, transactions: 170, percentage: 18.6 },
-    { service: 'Ajuste de Freios', platformRevenue: 6200, transactions: 124, percentage: 13.5 },
-    { service: 'Outros', platformRevenue: 4050, transactions: 81, percentage: 8.9 }
-  ];
-
-  const generateMockRecentTransactions = () => [
-    { id: 1, workshop: 'BikeMax Pro', customer: 'João Silva', service: 'Manutenção Completa', total: 250, fee: 25, date: '2024-04-15' },
-    { id: 2, workshop: 'Oficina Central', customer: 'Maria Santos', service: 'Troca de Pneu', total: 80, fee: 8, date: '2024-04-15' },
-    { id: 3, workshop: 'Speed Bikes', customer: 'Pedro Costa', service: 'Ajuste de Freios', total: 120, fee: 12, date: '2024-04-14' }
-  ];
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);

@@ -74,15 +74,15 @@ const AdminDashboard = () => {
   const [paymentStats, setPaymentStats] = useState(null);
   const [commissionData, setCommissionData] = useState(null);
 
-  // Dados mockados
-  const mockStats = {
-    totalWorkshops: 45,
-    activeUsers: 1250,
-    monthlyRevenue: 125000,
-    pendingApprovals: 8,
-    totalAppointments: 3420,
-    averageRating: 4.6,
-  };
+  // Estados para dados reais
+  const [stats, setStats] = useState({
+    totalWorkshops: 0,
+    activeUsers: 0,
+    monthlyRevenue: 0,
+    pendingApprovals: 0,
+    totalAppointments: 0,
+    averageRating: 0,
+  });
 
   // Carregar dados de pagamento e comissão
   const loadPaymentStats = async () => {
@@ -101,108 +101,25 @@ const AdminDashboard = () => {
       setCommissionData(commissionInfo);
     } catch (error) {
       console.error('Erro ao carregar estatísticas de pagamento:', error);
-      // Usar dados mockados em caso de erro
+      // Usar dados padrão em caso de erro
       setCommissionData({
-        totalCommission: 12500,
-        monthlyCommission: 3200,
+        totalCommission: 0,
+        monthlyCommission: 0,
         averageCommissionRate: 0.10,
-        totalTransactions: 342,
-        commissionGrowth: 15.2
+        totalTransactions: 0,
+        commissionGrowth: 0
       });
     }
   };
 
-  const mockWorkshops = [
-    {
-      id: 1,
-      name: 'Bike Center',
-      owner: 'João Silva',
-      email: 'joao@bikecenter.com',
-      phone: '(11) 1234-5678',
-      address: 'Rua das Flores, 123 - Centro',
-      status: 'active',
-      verified: true,
-      rating: 4.8,
-      reviewCount: 156,
-      joinDate: '2023-01-15',
-      monthlyRevenue: 8500,
-      totalAppointments: 245,
-    },
-    {
-      id: 2,
-      name: 'Speed Bikes',
-      owner: 'Maria Santos',
-      email: 'maria@speedbikes.com',
-      phone: '(11) 9876-5432',
-      address: 'Av. Paulista, 456 - Bela Vista',
-      status: 'pending',
-      verified: false,
-      rating: 0,
-      reviewCount: 0,
-      joinDate: '2024-01-10',
-      monthlyRevenue: 0,
-      totalAppointments: 0,
-    },
-    {
-      id: 3,
-      name: 'Cycle Pro',
-      owner: 'Carlos Oliveira',
-      email: 'carlos@cyclepro.com',
-      phone: '(11) 5555-9999',
-      address: 'Rua Augusta, 789 - Consolação',
-      status: 'suspended',
-      verified: true,
-      rating: 3.2,
-      reviewCount: 45,
-      joinDate: '2023-06-20',
-      monthlyRevenue: 2100,
-      totalAppointments: 89,
-    },
-  ];
+  const [workshops, setWorkshops] = useState([]);
 
-  const mockUsers = [
-    {
-      id: 1,
-      name: 'Ana Costa',
-      email: 'ana@email.com',
-      userType: 'cyclist',
-      joinDate: '2023-03-10',
-      totalAppointments: 12,
-      status: 'active',
-    },
-    {
-      id: 2,
-      name: 'Pedro Lima',
-      email: 'pedro@email.com',
-      userType: 'cyclist',
-      joinDate: '2023-08-15',
-      totalAppointments: 8,
-      status: 'active',
-    },
-    {
-      id: 3,
-      name: 'Lucia Ferreira',
-      email: 'lucia@email.com',
-      userType: 'cyclist',
-      joinDate: '2024-01-05',
-      totalAppointments: 3,
-      status: 'active',
-    },
-  ];
+  const [users, setUsers] = useState([]);
 
-  const mockReports = {
-    monthlyGrowth: [
-      { month: 'Jan', workshops: 35, users: 980, revenue: 95000 },
-      { month: 'Fev', workshops: 38, users: 1050, revenue: 105000 },
-      { month: 'Mar', workshops: 42, users: 1180, revenue: 115000 },
-      { month: 'Abr', workshops: 45, users: 1250, revenue: 125000 },
-    ],
-    topWorkshops: [
-      { name: 'Bike Center', revenue: 8500, appointments: 245 },
-      { name: 'Cycle Master', revenue: 7200, appointments: 198 },
-      { name: 'Speed Repair', revenue: 6800, appointments: 176 },
-    ],
-  };
+  const [reports, setReports] = useState({
+    monthlyGrowth: [],
+    topWorkshops: [],
+  });
 
   useEffect(() => {
     if (!user || user.userType !== 'admin') {
@@ -255,8 +172,8 @@ const AdminDashboard = () => {
   };
 
   const filteredWorkshops = statusFilter === 'all' 
-    ? mockWorkshops 
-    : mockWorkshops.filter(workshop => workshop.status === statusFilter);
+    ? workshops
+        : workshops.filter(workshop => workshop.status === statusFilter);
 
   const renderOverview = () => (
     <Grid container spacing={3}>
@@ -269,7 +186,7 @@ const AdminDashboard = () => {
                   Total de Oficinas
                 </Typography>
                 <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                  {mockStats.totalWorkshops}
+                  {stats.totalWorkshops}
                 </Typography>
               </Box>
               <Avatar sx={{ bgcolor: 'primary.main' }}>
@@ -289,7 +206,7 @@ const AdminDashboard = () => {
                   Usuários Ativos
                 </Typography>
                 <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                  {mockStats.activeUsers.toLocaleString()}
+                  {stats.activeUsers.toLocaleString()}
                 </Typography>
               </Box>
               <Avatar sx={{ bgcolor: 'success.main' }}>
@@ -309,7 +226,7 @@ const AdminDashboard = () => {
                   Receita Mensal
                 </Typography>
                 <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                  R$ {(mockStats.monthlyRevenue / 1000).toFixed(0)}k
+                  R$ {(stats.monthlyRevenue / 1000).toFixed(0)}k
                 </Typography>
               </Box>
               <Avatar sx={{ bgcolor: 'info.main' }}>
@@ -329,7 +246,7 @@ const AdminDashboard = () => {
                   Aprovações Pendentes
                 </Typography>
                 <Typography variant="h4" sx={{ fontWeight: 600, color: 'warning.main' }}>
-                  {mockStats.pendingApprovals}
+                  {stats.pendingApprovals}
                 </Typography>
               </Box>
               <Avatar sx={{ bgcolor: 'warning.main' }}>
@@ -445,7 +362,7 @@ const AdminDashboard = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {mockWorkshops.filter(w => w.status === 'pending').map((workshop) => (
+                  {workshops.filter(w => w.status === 'pending').map((workshop) => (
                     <TableRow key={workshop.id}>
                       <TableCell>{workshop.name}</TableCell>
                       <TableCell>{workshop.owner}</TableCell>
@@ -481,7 +398,7 @@ const AdminDashboard = () => {
               Top Oficinas do Mês
             </Typography>
             <List>
-              {mockReports.topWorkshops.map((workshop, index) => (
+              {reports.topWorkshops.map((workshop, index) => (
                 <React.Fragment key={index}>
                   <ListItem sx={{ px: 0 }}>
                     <ListItemIcon>
@@ -494,7 +411,7 @@ const AdminDashboard = () => {
                       secondary={`R$ ${workshop.revenue.toLocaleString()} • ${workshop.appointments} agendamentos`}
                     />
                   </ListItem>
-                  {index < mockReports.topWorkshops.length - 1 && <Divider />}
+                  {index < reports.topWorkshops.length - 1 && <Divider />}
                 </React.Fragment>
               ))}
             </List>
@@ -643,7 +560,7 @@ const AdminDashboard = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {mockUsers.map((user) => (
+            {users.map((user) => (
               <TableRow key={user.id}>
                 <TableCell>{user.name}</TableCell>
                 <TableCell>{user.email}</TableCell>
@@ -875,7 +792,7 @@ const AdminDashboard = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {mockReports.monthlyGrowth.map((data, index) => (
+                  {reports.monthlyGrowth.map((data, index) => (
                     <TableRow key={index}>
                       <TableCell>{data.month}</TableCell>
                       <TableCell>{data.workshops}</TableCell>

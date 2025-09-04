@@ -2,10 +2,8 @@ const Payment = require('../models/Payment');
 const Appointment = require('../models/Appointment');
 const mongoose = require('mongoose');
 
-// Usar serviço de desenvolvimento ou produção baseado no ambiente
-const mercadoPagoService = process.env.NODE_ENV === 'development' 
-  ? require('../services/mercadoPagoService-dev')
-  : require('../services/mercadoPagoService');
+// Usar apenas serviço de produção
+const mercadoPagoService = require('../services/mercadoPagoService');
 
 /**
  * @desc    Criar preferência de pagamento

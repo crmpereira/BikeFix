@@ -109,20 +109,20 @@ const FinancialReports = () => {
       console.error('Erro ao carregar dados financeiros:', error);
       toast.error('Erro ao carregar relatórios financeiros');
       
-      // Dados mockados para demonstração
+      // Dados vazios em caso de erro
       setReportData({
         summary: {
-          totalRevenue: 15750,
-          grossRevenue: 17500,
-          netRevenue: 15750,
-          platformFees: 1750,
-          totalTransactions: 45,
-          averageTicket: 350,
-          growth: 12.5
+          totalRevenue: 0,
+          grossRevenue: 0,
+          netRevenue: 0,
+          platformFees: 0,
+          totalTransactions: 0,
+          averageTicket: 0,
+          growth: 0
         },
-        transactions: generateMockTransactions(),
-        monthlyData: generateMockMonthlyData(),
-        serviceBreakdown: generateMockServiceBreakdown()
+        transactions: [],
+        monthlyData: [],
+        serviceBreakdown: []
       });
     } finally {
       setLoading(false);
@@ -243,29 +243,7 @@ const FinancialReports = () => {
     })).sort((a, b) => b.revenue - a.revenue);
   };
 
-  // Funções para gerar dados mockados
-  const generateMockTransactions = () => [
-    { id: 1, date: '2024-04-15', customer: 'João Silva', service: 'Manutenção Completa', gross: 250, fee: 25, net: 225 },
-    { id: 2, date: '2024-04-14', customer: 'Maria Santos', service: 'Troca de Pneu', gross: 80, fee: 8, net: 72 },
-    { id: 3, date: '2024-04-13', customer: 'Pedro Costa', service: 'Ajuste de Freios', gross: 120, fee: 12, net: 108 },
-    { id: 4, date: '2024-04-12', customer: 'Ana Lima', service: 'Revisão Geral', gross: 180, fee: 18, net: 162 },
-    { id: 5, date: '2024-04-11', customer: 'Carlos Oliveira', service: 'Troca de Corrente', gross: 150, fee: 15, net: 135 }
-  ];
 
-  const generateMockMonthlyData = () => [
-    { month: '2024-01', revenue: 12500, transactions: 35, platformFees: 1250 },
-    { month: '2024-02', revenue: 14200, transactions: 42, platformFees: 1420 },
-    { month: '2024-03', revenue: 16800, transactions: 48, platformFees: 1680 },
-    { month: '2024-04', revenue: 17500, transactions: 45, platformFees: 1750 }
-  ];
-
-  const generateMockServiceBreakdown = () => [
-    { service: 'Manutenção Completa', revenue: 6500, transactions: 18, percentage: 37.1 },
-    { service: 'Revisão Geral', revenue: 4200, transactions: 15, percentage: 24.0 },
-    { service: 'Troca de Pneu', revenue: 2800, transactions: 8, percentage: 16.0 },
-    { service: 'Ajuste de Freios', revenue: 2100, transactions: 12, percentage: 12.0 },
-    { service: 'Outros', revenue: 1900, transactions: 7, percentage: 10.9 }
-  ];
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);

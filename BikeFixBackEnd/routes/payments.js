@@ -8,7 +8,7 @@ const {
   getPaymentStats,
   getPaymentsByAppointment
 } = require('../controllers/paymentController');
-const { protect } = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -122,7 +122,7 @@ const router = express.Router();
  *       404:
  *         description: Agendamento não encontrado
  */
-router.post('/create-preference', protect, createPaymentPreference);
+router.post('/create-preference', authenticateToken, createPaymentPreference);
 
 /**
  * @swagger
@@ -187,7 +187,7 @@ router.post('/webhook', processWebhook);
  *       403:
  *         description: Acesso negado
  */
-router.get('/:paymentId/status', protect, getPaymentStatus);
+router.get('/:paymentId/status', authenticateToken, getPaymentStatus);
 
 /**
  * @swagger
@@ -243,7 +243,7 @@ router.get('/:paymentId/status', protect, getPaymentStatus);
  *                     itemsPerPage:
  *                       type: integer
  */
-router.get('/user', protect, getUserPayments);
+router.get('/user', authenticateToken, getUserPayments);
 
 /**
  * @swagger
@@ -284,7 +284,7 @@ router.get('/user', protect, getUserPayments);
  *       404:
  *         description: Pagamento não encontrado
  */
-router.post('/:paymentId/refund', protect, processRefund);
+router.post('/:paymentId/refund', authenticateToken, processRefund);
 
 /**
  * @swagger
@@ -334,7 +334,7 @@ router.post('/:paymentId/refund', protect, processRefund);
  *       403:
  *         description: Acesso negado
  */
-router.get('/stats', protect, getPaymentStats);
+router.get('/stats', authenticateToken, getPaymentStats);
 
 /**
  * @swagger
@@ -369,6 +369,6 @@ router.get('/stats', protect, getPaymentStats);
  *       404:
  *         description: Agendamento não encontrado
  */
-router.get('/appointment/:appointmentId', protect, getPaymentsByAppointment);
+router.get('/appointment/:appointmentId', authenticateToken, getPaymentsByAppointment);
 
 module.exports = router;
