@@ -39,18 +39,48 @@ const updateProfile = async (req, res) => {
       });
     }
 
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      { $set: req.body },
-      { new: true, runValidators: true }
-    ).select('-password');
-
-    if (!user) {
+    // Buscar o usuário para verificar o tipo
+    const currentUser = await User.findById(req.user.id);
+    if (!currentUser) {
       return res.status(404).json({
         success: false,
         message: 'Usuário não encontrado'
       });
     }
+
+    let updateData = { ...req.body };
+
+    // Se for uma oficina e houver dados de endereço, mover para workshopData.address
+    if (currentUser.userType === 'workshop') {
+      const addressFields = ['address', 'city', 'state', 'zipCode'];
+      const hasAddressData = addressFields.some(field => updateData[field]);
+      
+      if (hasAddressData) {
+        // Mover dados de endereço para workshopData.address
+        if (updateData.address) {
+          updateData['workshopData.address.street'] = updateData.address;
+          delete updateData.address;
+        }
+        if (updateData.city) {
+          updateData['workshopData.address.city'] = updateData.city;
+          delete updateData.city;
+        }
+        if (updateData.state) {
+          updateData['workshopData.address.state'] = updateData.state;
+          delete updateData.state;
+        }
+        if (updateData.zipCode) {
+          updateData['workshopData.address.zipCode'] = updateData.zipCode;
+          delete updateData.zipCode;
+        }
+      }
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).select('-password');
 
     res.json({
       success: true,
