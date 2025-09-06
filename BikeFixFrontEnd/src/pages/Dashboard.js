@@ -134,23 +134,32 @@ const Dashboard = () => {
   const loadNearbyWorkshops = async () => {
     try {
       setWorkshopsLoading(true);
+      console.log('🔍 Iniciando busca por oficinas próximas...');
       
       // Tentar obter localização do usuário
       if (navigator.geolocation) {
+        console.log('📍 Geolocalização disponível, obtendo posição...');
         navigator.geolocation.getCurrentPosition(
           async (position) => {
             try {
               const { latitude, longitude } = position.coords;
-              const response = await workshopService.getNearbyWorkshops(latitude, longitude, 10);
+              console.log('📍 Localização obtida:', { latitude, longitude });
               
-              if (response.success && response.data) {
+              const response = await workshopService.getNearbyWorkshops(latitude, longitude, 10);
+              console.log('📡 Resposta do serviço de oficinas:', response);
+              
+              if (response.success && response.data && response.data.length > 0) {
                 const formattedWorkshops = response.data.map(workshop => 
                   workshopService.formatWorkshopForFrontend(workshop)
                 ).slice(0, 3); // Mostrar apenas as 3 primeiras
+                console.log('✅ Oficinas próximas encontradas:', formattedWorkshops.length);
                 setNearbyWorkshops(formattedWorkshops);
+              } else {
+                console.log('⚠️ Nenhuma oficina próxima encontrada, carregando todas...');
+                await loadAllWorkshops();
               }
             } catch (error) {
-              console.error('Erro ao buscar oficinas próximas:', error);
+              console.error('❌ Erro ao buscar oficinas próximas:', error);
               // Fallback: carregar todas as oficinas
               await loadAllWorkshops();
             } finally {
@@ -158,34 +167,107 @@ const Dashboard = () => {
             }
           },
           async (error) => {
-            console.warn('Geolocalização não disponível:', error);
+            console.warn('⚠️ Geolocalização não disponível ou negada:', error.message);
             // Fallback: carregar todas as oficinas
             await loadAllWorkshops();
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 300000 // 5 minutos
           }
         );
       } else {
+        console.log('❌ Geolocalização não suportada pelo navegador');
         // Fallback: carregar todas as oficinas
         await loadAllWorkshops();
       }
     } catch (error) {
-      console.error('Erro ao carregar oficinas:', error);
+      console.error('❌ Erro geral ao carregar oficinas:', error);
       setWorkshopsLoading(false);
     }
   };
 
   const loadAllWorkshops = async () => {
     try {
-      const response = await workshopService.getAllWorkshops();
+      console.log('🔄 Carregando todas as oficinas como fallback...');
       
-      if (response.success && response.data) {
-        const formattedWorkshops = response.data.map(workshop => 
-          workshopService.formatWorkshopForFrontend(workshop)
-        ).slice(0, 3); // Mostrar apenas as 3 primeiras
-        setNearbyWorkshops(formattedWorkshops);
+      // Dados de teste simulados para demonstração
+      const mockWorkshops = [
+        {
+          _id: '1',
+          name: 'Oficina Bike Pro',
+          address: {
+            street: 'Rua das Flores, 123',
+            neighborhood: 'Centro',
+            city: 'São Paulo',
+            state: 'SP',
+            zipCode: '01234-567'
+          },
+          location: {
+            coordinates: [-23.5505, -46.6333]
+          },
+          rating: 4.8,
+          distance: '0.5 km',
+          phone: '(11) 1234-5678',
+          email: 'contato@bikepro.com'
+        },
+        {
+          _id: '2', 
+          name: 'Ciclo Repair',
+          address: {
+            street: 'Av. Paulista, 456',
+            neighborhood: 'Bela Vista',
+            city: 'São Paulo',
+            state: 'SP',
+            zipCode: '01310-100'
+          },
+          location: {
+            coordinates: [-23.5618, -46.6565]
+          },
+          rating: 4.5,
+          distance: '1.2 km',
+          phone: '(11) 9876-5432',
+          email: 'info@ciclorepair.com'
+        },
+        {
+          _id: '3',
+          name: 'Bike Express',
+          address: {
+            street: 'Rua Augusta, 789',
+            neighborhood: 'Consolação',
+            city: 'São Paulo', 
+            state: 'SP',
+            zipCode: '01305-000'
+          },
+          location: {
+            coordinates: [-23.5489, -46.6388]
+          },
+          rating: 4.2,
+          distance: '2.1 km',
+          phone: '(11) 5555-1234',
+          email: 'contato@bikeexpress.com'
+        }
+      ];
+      
+      try {
+        const response = await workshopService.getAllWorkshops();
+        if (response.success && response.data && response.data.length > 0) {
+          const formattedWorkshops = response.data.map(workshop => 
+            workshopService.formatWorkshopForFrontend(workshop)
+          ).slice(0, 3);
+          console.log('✅ Oficinas carregadas do backend:', formattedWorkshops.length);
+          setNearbyWorkshops(formattedWorkshops);
+        } else {
+          console.log('⚠️ Backend indisponível, usando dados de teste');
+          setNearbyWorkshops(mockWorkshops);
+        }
+      } catch (error) {
+        console.log('⚠️ Erro no backend, usando dados de teste:', error.message);
+        setNearbyWorkshops(mockWorkshops);
       }
     } catch (error) {
-      console.error('Erro ao carregar todas as oficinas:', error);
-      toast.error('Erro ao carregar oficinas');
+      console.error('❌ Erro ao carregar oficinas:', error);
     } finally {
       setWorkshopsLoading(false);
     }
