@@ -23,8 +23,8 @@ export const AuthProvider = ({ children }) => {
       try {
         const token = Cookies.get('token');
         if (token) {
-          const userData = await authService.getProfile();
-          setUser(userData);
+          const response = await authService.getProfile();
+          setUser(response.data);
           setIsAuthenticated(true);
         } else {
           // Se não há token, garantir que o estado está limpo
@@ -154,9 +154,9 @@ export const AuthProvider = ({ children }) => {
 
   const updateProfile = async (profileData) => {
     try {
-      const updatedUser = await authService.updateProfile(profileData);
-      setUser(updatedUser);
-      return { success: true, user: updatedUser };
+      const response = await authService.updateProfile(profileData);
+      setUser(response.data);
+      return { success: true, user: response.data };
     } catch (error) {
       console.error('Erro ao atualizar perfil:', error);
       return { 

@@ -72,12 +72,12 @@ export const authService = {
 
   // Obter perfil do usuário
   getProfile: async () => {
-    return await api.get('/auth/profile');
+    return await api.get('/users/profile');
   },
 
   // Atualizar perfil
   updateProfile: async (profileData) => {
-    return await api.put('/auth/profile', profileData);
+    return await api.put('/users/profile', profileData);
   },
 
   // Alterar senha

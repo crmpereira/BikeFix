@@ -126,9 +126,13 @@ const Profile = () => {
   const handleSaveProfile = async () => {
     try {
       setLoading(true);
-      await updateProfile(formData);
-      setEditing(false);
-      toast.success('Perfil atualizado com sucesso!');
+      const result = await updateProfile(formData);
+      if (result.success) {
+        setEditing(false);
+        toast.success('Perfil atualizado com sucesso!');
+      } else {
+        toast.error(result.error || 'Erro ao atualizar perfil');
+      }
     } catch (error) {
       toast.error('Erro ao atualizar perfil: ' + error.message);
     } finally {
