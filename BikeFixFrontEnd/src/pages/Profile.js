@@ -9,7 +9,6 @@ import {
   TextField,
   Button,
   Avatar,
-  Paper,
   Divider,
   IconButton,
   Dialog,
@@ -55,7 +54,10 @@ const Profile = () => {
   const getAddressData = (userData) => {
     if (!userData) return { address: '', city: '', state: '', zipCode: '' };
     
+    console.log('getAddressData - userData:', userData);
+    
     if (userData.userType === 'cyclist' && userData.cyclistData?.address) {
+      console.log('getAddressData - Usando cyclistData.address:', userData.cyclistData.address);
       return {
         address: userData.cyclistData.address.street || '',
         city: userData.cyclistData.address.city || '',
@@ -63,6 +65,7 @@ const Profile = () => {
         zipCode: userData.cyclistData.address.zipCode || '',
       };
     } else if (userData.userType === 'workshop' && userData.workshopData?.address) {
+      console.log('getAddressData - Usando workshopData.address:', userData.workshopData.address);
       return {
         address: userData.workshopData.address.street || '',
         city: userData.workshopData.address.city || '',
@@ -71,6 +74,7 @@ const Profile = () => {
       };
     } else {
       // Fallback para dados no nível raiz (compatibilidade)
+      console.log('getAddressData - Usando fallback, dados raiz');
       return {
         address: userData.address || '',
         city: userData.city || '',
@@ -207,10 +211,7 @@ const Profile = () => {
       name: user?.name || '',
       email: user?.email || '',
       phone: user?.phone || '',
-      address: user?.address || '',
-      city: user?.city || '',
-      state: user?.state || '',
-      zipCode: user?.zipCode || '',
+      ...getAddressData(user),
     });
     setEditing(false);
   };
