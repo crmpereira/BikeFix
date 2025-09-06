@@ -50,13 +50,13 @@ const updateProfile = async (req, res) => {
 
     let updateData = { ...req.body };
 
-    // Se for uma oficina e houver dados de endereço, mover para workshopData.address
-    if (currentUser.userType === 'workshop') {
-      const addressFields = ['address', 'city', 'state', 'zipCode'];
-      const hasAddressData = addressFields.some(field => updateData[field]);
-      
-      if (hasAddressData) {
-        // Mover dados de endereço para workshopData.address
+    // Processar dados de endereço baseado no tipo de usuário
+    const addressFields = ['address', 'city', 'state', 'zipCode'];
+    const hasAddressData = addressFields.some(field => updateData[field]);
+    
+    if (hasAddressData) {
+      if (currentUser.userType === 'workshop') {
+        // Para oficinas, mover dados de endereço para workshopData.address
         if (updateData.address) {
           updateData['workshopData.address.street'] = updateData.address;
           delete updateData.address;
@@ -71,6 +71,24 @@ const updateProfile = async (req, res) => {
         }
         if (updateData.zipCode) {
           updateData['workshopData.address.zipCode'] = updateData.zipCode;
+          delete updateData.zipCode;
+        }
+      } else if (currentUser.userType === 'cyclist') {
+        // Para ciclistas, mover dados de endereço para cyclistData.address
+        if (updateData.address) {
+          updateData['cyclistData.address.street'] = updateData.address;
+          delete updateData.address;
+        }
+        if (updateData.city) {
+          updateData['cyclistData.address.city'] = updateData.city;
+          delete updateData.city;
+        }
+        if (updateData.state) {
+          updateData['cyclistData.address.state'] = updateData.state;
+          delete updateData.state;
+        }
+        if (updateData.zipCode) {
+          updateData['cyclistData.address.zipCode'] = updateData.zipCode;
           delete updateData.zipCode;
         }
       }

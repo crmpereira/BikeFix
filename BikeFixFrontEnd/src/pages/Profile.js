@@ -51,14 +51,40 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
   const [searchingCEP, setSearchingCEP] = useState(false);
   
+  // Função para obter dados de endereço baseado no tipo de usuário
+  const getAddressData = (userData) => {
+    if (!userData) return { address: '', city: '', state: '', zipCode: '' };
+    
+    if (userData.userType === 'cyclist' && userData.cyclistData?.address) {
+      return {
+        address: userData.cyclistData.address.street || '',
+        city: userData.cyclistData.address.city || '',
+        state: userData.cyclistData.address.state || '',
+        zipCode: userData.cyclistData.address.zipCode || '',
+      };
+    } else if (userData.userType === 'workshop' && userData.workshopData?.address) {
+      return {
+        address: userData.workshopData.address.street || '',
+        city: userData.workshopData.address.city || '',
+        state: userData.workshopData.address.state || '',
+        zipCode: userData.workshopData.address.zipCode || '',
+      };
+    } else {
+      // Fallback para dados no nível raiz (compatibilidade)
+      return {
+        address: userData.address || '',
+        city: userData.city || '',
+        state: userData.state || '',
+        zipCode: userData.zipCode || '',
+      };
+    }
+  };
+
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
     phone: user?.phone || '',
-    address: user?.address || '',
-    city: user?.city || '',
-    state: user?.state || '',
-    zipCode: user?.zipCode || '',
+    ...getAddressData(user),
   });
   
   const [passwordData, setPasswordData] = useState({
@@ -74,10 +100,7 @@ const Profile = () => {
         name: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
-        address: user.address || '',
-        city: user.city || '',
-        state: user.state || '',
-        zipCode: user.zipCode || '',
+        ...getAddressData(user),
       });
     }
   }, [user]);
