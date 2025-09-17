@@ -1,8 +1,6 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
-
-// Configurar base URL da API
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+import API_BASE_URL from '../config/api';
 
 // Criar instância do axios
 const api = axios.create({
