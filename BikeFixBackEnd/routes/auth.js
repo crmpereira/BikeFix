@@ -144,6 +144,26 @@ router.post('/debug-user', async (req, res) => {
     const { email } = req.body;
     const User = require('../models/User');
     
+    // Se email for "list-all", listar todos os usuários
+    if (email === 'list-all') {
+      const users = await User.find({}).select('name email userType isActive isVerified createdAt');
+      const totalCount = await User.countDocuments();
+      
+      return res.json({
+        totalUsers: totalCount,
+        users: users.map(user => ({
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          userType: user.userType,
+          isActive: user.isActive,
+          isVerified: user.isVerified,
+          createdAt: user.createdAt
+        })),
+        timestamp: new Date().toISOString()
+      });
+    }
+    
     const user = await User.findOne({ email }).select('+password');
     
     if (!user) {
