@@ -139,11 +139,11 @@ const AdminFinancialReports = () => {
     });
     
     // Calcular receita total da plataforma (comissões)
-    const totalPlatformRevenue = filteredAppointments.reduce((sum, apt) => sum + (apt.platformFee || 0), 0);
+    const totalPlatformRevenue = filteredAppointments.reduce((sum, apt) => sum + (apt.pricing?.platformFee || apt.platformFee || 0), 0);
     
     // Calcular receita total das oficinas
     const totalWorkshopRevenue = filteredAppointments.reduce((sum, apt) => {
-      return sum + ((apt.totalPrice || 0) - (apt.platformFee || 0));
+      return sum + ((apt.pricing?.totalPrice || apt.totalPrice || 0) - (apt.pricing?.platformFee || apt.platformFee || 0));
     }, 0);
     
     // Processar ranking de oficinas
@@ -219,8 +219,8 @@ const AdminFinancialReports = () => {
       }
       
       const data = workshopMap.get(workshopId);
-      data.totalRevenue += apt.totalPrice || 0;
-      data.platformFees += apt.platformFee || 0;
+      data.totalRevenue += apt.pricing?.totalPrice || apt.totalPrice || 0;
+      data.platformFees += apt.pricing?.platformFee || apt.platformFee || 0;
       data.transactions += 1;
     });
     
@@ -248,8 +248,8 @@ const AdminFinancialReports = () => {
       }
       
       const data = monthlyMap.get(month);
-      data.platformRevenue += apt.platformFee || 0;
-      data.workshopRevenue += (apt.totalPrice || 0) - (apt.platformFee || 0);
+      data.platformRevenue += apt.pricing?.platformFee || apt.platformFee || 0;
+      data.workshopRevenue += (apt.pricing?.totalPrice || apt.totalPrice || 0) - (apt.pricing?.platformFee || apt.platformFee || 0);
       data.transactions += 1;
     });
     
@@ -271,7 +271,7 @@ const AdminFinancialReports = () => {
       }
       
       const data = serviceMap.get(service);
-      data.platformRevenue += apt.platformFee || 0;
+      data.platformRevenue += apt.pricing?.platformFee || apt.platformFee || 0;
       data.transactions += 1;
     });
     

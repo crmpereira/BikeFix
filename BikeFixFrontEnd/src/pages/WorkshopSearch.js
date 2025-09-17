@@ -37,8 +37,10 @@ import { geocodeCEP } from '../services/geocodingService';
 import { validateCEP } from '../services/cepService';
 import LeafletMap from '../components/LeafletMap';
 import { toast } from 'react-toastify';
+import { useAuth } from '../contexts/AuthContext';
 
 const WorkshopSearch = () => {
+  const { user } = useAuth();
   const [filters, setFilters] = useState({
     search: '',
     cep: ''
@@ -228,6 +230,18 @@ const WorkshopSearch = () => {
 
   // Obter localização do usuário
   const getUserLocation = () => {
+    // Primeiro, tentar usar a localização do usuário logado
+    if (user && user.address && user.address.coordinates) {
+      console.log('📍 Usando localização do usuário logado:', user.address.coordinates);
+      setUserLocation({
+        lat: user.address.coordinates.latitude,
+        lng: user.address.coordinates.longitude
+      });
+      setLocationError(null);
+      return;
+    }
+
+    // Se não tiver localização salva, tentar geolocalização do navegador
     if (!navigator.geolocation) {
       setLocationError('Geolocalização não é suportada pelo seu navegador.');
       return;
@@ -235,6 +249,7 @@ const WorkshopSearch = () => {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        console.log('📍 Usando geolocalização do navegador:', position.coords);
         setUserLocation({
           lat: position.coords.latitude,
           lng: position.coords.longitude
@@ -257,6 +272,7 @@ const WorkshopSearch = () => {
             errorMessage = 'Erro desconhecido ao obter localização.';
             break;
         }
+        console.log('❌ Erro de geolocalização:', errorMessage);
         setLocationError(errorMessage);
       },
       {

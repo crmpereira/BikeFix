@@ -190,84 +190,22 @@ const Dashboard = () => {
 
   const loadAllWorkshops = async () => {
     try {
-      console.log('🔄 Carregando todas as oficinas como fallback...');
+      console.log('🔄 Carregando todas as oficinas do banco de dados...');
       
-      // Dados de teste simulados para demonstração
-      const mockWorkshops = [
-        {
-          _id: '1',
-          name: 'Oficina Bike Pro',
-          address: {
-            street: 'Rua das Flores, 123',
-            neighborhood: 'Centro',
-            city: 'São Paulo',
-            state: 'SP',
-            zipCode: '01234-567'
-          },
-          location: {
-            coordinates: [-23.5505, -46.6333]
-          },
-          rating: 4.8,
-          distance: '0.5 km',
-          phone: '(11) 1234-5678',
-          email: 'contato@bikepro.com'
-        },
-        {
-          _id: '2', 
-          name: 'Ciclo Repair',
-          address: {
-            street: 'Av. Paulista, 456',
-            neighborhood: 'Bela Vista',
-            city: 'São Paulo',
-            state: 'SP',
-            zipCode: '01310-100'
-          },
-          location: {
-            coordinates: [-23.5618, -46.6565]
-          },
-          rating: 4.5,
-          distance: '1.2 km',
-          phone: '(11) 9876-5432',
-          email: 'info@ciclorepair.com'
-        },
-        {
-          _id: '3',
-          name: 'Bike Express',
-          address: {
-            street: 'Rua Augusta, 789',
-            neighborhood: 'Consolação',
-            city: 'São Paulo', 
-            state: 'SP',
-            zipCode: '01305-000'
-          },
-          location: {
-            coordinates: [-23.5489, -46.6388]
-          },
-          rating: 4.2,
-          distance: '2.1 km',
-          phone: '(11) 5555-1234',
-          email: 'contato@bikeexpress.com'
-        }
-      ];
-      
-      try {
-        const response = await workshopService.getAllWorkshops();
-        if (response.success && response.data && response.data.length > 0) {
-          const formattedWorkshops = response.data.map(workshop => 
-            workshopService.formatWorkshopForFrontend(workshop)
-          ).slice(0, 3);
-          console.log('✅ Oficinas carregadas do backend:', formattedWorkshops.length);
-          setNearbyWorkshops(formattedWorkshops);
-        } else {
-          console.log('⚠️ Backend indisponível, usando dados de teste');
-          setNearbyWorkshops(mockWorkshops);
-        }
-      } catch (error) {
-        console.log('⚠️ Erro no backend, usando dados de teste:', error.message);
-        setNearbyWorkshops(mockWorkshops);
+      const response = await workshopService.getAllWorkshops();
+      if (response.success && response.data && response.data.length > 0) {
+        const formattedWorkshops = response.data.map(workshop => 
+          workshopService.formatWorkshopForFrontend(workshop)
+        ).slice(0, 3);
+        console.log('✅ Oficinas carregadas do backend:', formattedWorkshops.length);
+        setNearbyWorkshops(formattedWorkshops);
+      } else {
+        console.log('⚠️ Nenhuma oficina encontrada no banco de dados');
+        setNearbyWorkshops([]);
       }
     } catch (error) {
-      console.error('❌ Erro ao carregar oficinas:', error);
+      console.error('❌ Erro ao carregar oficinas do banco:', error);
+      setNearbyWorkshops([]);
     } finally {
       setWorkshopsLoading(false);
     }
@@ -394,58 +332,61 @@ const Dashboard = () => {
         {/* Cards de Ações Rápidas - Design Moderno */}
         <Grid item xs={12} md={8}>
           <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={6} sm={6} md={3}>
-              <Card sx={{ 
-                textAlign: 'center',
-                minHeight: { xs: 140, sm: 160 },
-                background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
-                border: '1px solid #e3f2fd',
-                transition: 'all 0.3s ease',
-                cursor: 'pointer',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: '0 8px 25px rgba(25, 118, 210, 0.15)'
-                }
-              }}>
-                <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                  <Box sx={{ 
-                    width: { xs: 50, sm: 60 }, 
-                    height: { xs: 50, sm: 60 },
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    mx: 'auto',
-                    mb: 2
-                  }}>
-                    <Search sx={{ fontSize: { xs: 24, sm: 30 }, color: 'white' }} />
-                  </Box>
-                  <Typography variant="h6" gutterBottom sx={{ 
-                    fontSize: { xs: '0.9rem', sm: '1.1rem' },
-                    fontWeight: 600,
-                    color: '#1976d2'
-                  }}>
-                    Buscar Oficinas
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    component={Link}
-                    to="/workshops"
-                    size="small"
-                    fullWidth
-                    sx={{ 
-                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                      borderRadius: 2,
-                      textTransform: 'none',
-                      fontWeight: 600
-                    }}
-                  >
-                    Buscar
-                  </Button>
-                </CardContent>
-              </Card>
-            </Grid>
+            {/* Mostrar "Buscar Oficinas" apenas para ciclistas e admins */}
+            {user?.userType !== 'workshop' && (
+              <Grid item xs={6} sm={6} md={3}>
+                <Card sx={{ 
+                  textAlign: 'center',
+                  minHeight: { xs: 140, sm: 160 },
+                  background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
+                  border: '1px solid #e3f2fd',
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 8px 25px rgba(25, 118, 210, 0.15)'
+                  }
+                }}>
+                  <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                    <Box sx={{ 
+                      width: { xs: 50, sm: 60 }, 
+                      height: { xs: 50, sm: 60 },
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      mx: 'auto',
+                      mb: 2
+                    }}>
+                      <Search sx={{ fontSize: { xs: 24, sm: 30 }, color: 'white' }} />
+                    </Box>
+                    <Typography variant="h6" gutterBottom sx={{ 
+                      fontSize: { xs: '0.9rem', sm: '1.1rem' },
+                      fontWeight: 600,
+                      color: '#1976d2'
+                    }}>
+                      Buscar Oficinas
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      component={Link}
+                      to="/workshops"
+                      size="small"
+                      fullWidth
+                      sx={{ 
+                        fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                        borderRadius: 2,
+                        textTransform: 'none',
+                        fontWeight: 600
+                      }}
+                    >
+                      Buscar
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
             
             <Grid item xs={6} sm={6} md={3}>
               <Card sx={{ 
@@ -716,7 +657,7 @@ const Dashboard = () => {
                   </Grid>
                 ))}
               </Grid>
-            ) : (
+            ) : user?.userType !== 'workshop' ? (
               <Box sx={{ 
                 textAlign: 'center', 
                 py: { xs: 4, md: 6 },
@@ -759,112 +700,17 @@ const Dashboard = () => {
                   🔍 Buscar Oficinas
                 </Button>
               </Box>
-            )}
-          </Paper>
-
-
-        </Grid>
-
-        {/* Sidebar com Notificações e Oficinas Próximas */}
-        <Grid item xs={12} md={4}>
-          {/* Oficinas Próximas - Design Moderno */}
-          <Paper sx={{ 
-            p: { xs: 2, md: 3 },
-            mb: 3,
-            borderRadius: 3,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
-          }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-              <Build sx={{ color: 'primary.main', fontSize: 28 }} />
-              <Typography variant="h6" sx={{ fontWeight: 700, color: '#1976d2' }}>
-                Oficinas Próximas
-              </Typography>
-            </Box>
-            
-            {workshopsLoading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                <CircularProgress />
-              </Box>
-            ) : nearbyWorkshops.length > 0 ? (
-              <Grid container spacing={2}>
-                {nearbyWorkshops.map((workshop) => (
-                  <Grid item xs={12} key={workshop.id}>
-                    <Card sx={{ 
-                      borderRadius: 3,
-                      border: '1px solid #f0f0f0',
-                      transition: 'all 0.3s ease',
-                      '&:hover': {
-                        boxShadow: '0 8px 25px rgba(0,0,0,0.12)',
-                        transform: 'translateY(-2px)'
-                      }
-                    }}>
-                      <CardContent sx={{ p: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                          <Box sx={{
-                            width: 35,
-                            height: 35,
-                            borderRadius: '50%',
-                            background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            mr: 1.5
-                          }}>
-                            <Build sx={{ color: 'white', fontSize: 18 }} />
-                          </Box>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '1rem', lineHeight: 1.2 }}>
-                            {workshop.name}
-                          </Typography>
-                        </Box>
-                        
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          📍 {workshop.address && typeof workshop.address === 'object'
-                  ? `${workshop.address.street}, ${workshop.address.city} - ${workshop.address.state}`
-                  : workshop.address}
-                        </Typography>
-                        
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Rating value={workshop.rating || 0} readOnly size="small" />
-                            <Typography variant="body2" sx={{ ml: 1, fontWeight: 500 }}>
-                              ({workshop.reviewCount || 0})
-                            </Typography>
-                          </Box>
-                          <Typography variant="body2" color="primary.main" sx={{ fontWeight: 600 }}>
-                            📏 {workshop.distance ? `${workshop.distance.toFixed(1)} km` : 'N/A'}
-                          </Typography>
-                        </Box>
-                        
-                        <Button
-                          variant="contained"
-                          size="small"
-                          fullWidth
-                          onClick={() => handleWorkshopDetails(workshop)}
-                          sx={{
-                            borderRadius: 2,
-                            textTransform: 'none',
-                            fontWeight: 600,
-                            py: 1
-                          }}
-                        >
-                          Ver Detalhes
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
             ) : (
               <Box sx={{ 
                 textAlign: 'center', 
-                py: 4,
+                py: { xs: 4, md: 6 },
                 background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
                 borderRadius: 3,
                 border: '2px dashed #dee2e6'
               }}>
                 <Box sx={{
-                  width: 60,
-                  height: 60,
+                  width: 80,
+                  height: 80,
                   borderRadius: '50%',
                   background: 'linear-gradient(135deg, #6c757d, #adb5bd)',
                   display: 'flex',
@@ -873,31 +719,156 @@ const Dashboard = () => {
                   mx: 'auto',
                   mb: 2
                 }}>
-                  <Build sx={{ fontSize: 30, color: 'white' }} />
+                  <Schedule sx={{ fontSize: 40, color: 'white' }} />
                 </Box>
-                <Typography variant="subtitle1" color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
-                  Nenhuma oficina encontrada
+                <Typography variant="h6" color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
+                  Nenhum agendamento encontrado
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: 250, mx: 'auto' }}>
-                  Explore todas as opções disponíveis!
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 300, mx: 'auto' }}>
+                  Aguarde novos agendamentos dos seus clientes!
                 </Typography>
-                <Button
-                  variant="contained"
-                  component={Link}
-                  to="/workshops"
-                  size="small"
-                  sx={{
-                    borderRadius: 2,
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    px: 3
-                  }}
-                >
-                  🔍 Buscar Oficinas
-                </Button>
               </Box>
             )}
           </Paper>
+
+
+        </Grid>
+
+        {/* Sidebar com Notificações e Oficinas Próximas */}
+        <Grid item xs={12} md={4}>
+          {/* Oficinas Próximas - Design Moderno - Apenas para ciclistas */}
+          {user?.userType !== 'workshop' && (
+            <Paper sx={{ 
+              p: { xs: 2, md: 3 },
+              mb: 3,
+              borderRadius: 3,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+                <Build sx={{ color: 'primary.main', fontSize: 28 }} />
+                <Typography variant="h6" sx={{ fontWeight: 700, color: '#1976d2' }}>
+                  Oficinas Próximas
+                </Typography>
+              </Box>
+              
+              {workshopsLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                  <CircularProgress />
+                </Box>
+              ) : nearbyWorkshops.length > 0 ? (
+                <Grid container spacing={2}>
+                  {nearbyWorkshops.map((workshop) => (
+                    <Grid item xs={12} key={workshop.id}>
+                      <Card sx={{ 
+                        borderRadius: 3,
+                        border: '1px solid #f0f0f0',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          boxShadow: '0 8px 25px rgba(0,0,0,0.12)',
+                          transform: 'translateY(-2px)'
+                        }
+                      }}>
+                        <CardContent sx={{ p: 2 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                            <Box sx={{
+                              width: 35,
+                              height: 35,
+                              borderRadius: '50%',
+                              background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              mr: 1.5
+                            }}>
+                              <Build sx={{ color: 'white', fontSize: 18 }} />
+                            </Box>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '1rem', lineHeight: 1.2 }}>
+                              {workshop.name}
+                            </Typography>
+                          </Box>
+                          
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            📍 {workshop.address && typeof workshop.address === 'object'
+                    ? `${workshop.address.street}, ${workshop.address.city} - ${workshop.address.state}`
+                    : workshop.address}
+                          </Typography>
+                          
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              <Rating value={workshop.rating || 0} readOnly size="small" />
+                              <Typography variant="body2" sx={{ ml: 1, fontWeight: 500 }}>
+                                ({workshop.reviewCount || 0})
+                              </Typography>
+                            </Box>
+                            <Typography variant="body2" color="primary.main" sx={{ fontWeight: 600 }}>
+                              📏 {workshop.distance || 'N/A'}
+                            </Typography>
+                          </Box>
+                          
+                          <Button
+                            variant="contained"
+                            size="small"
+                            fullWidth
+                            onClick={() => handleWorkshopDetails(workshop)}
+                            sx={{
+                              borderRadius: 2,
+                              textTransform: 'none',
+                              fontWeight: 600,
+                              py: 1
+                            }}
+                          >
+                            Ver Detalhes
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              ) : (
+                <Box sx={{ 
+                  textAlign: 'center', 
+                  py: 4,
+                  background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+                  borderRadius: 3,
+                  border: '2px dashed #dee2e6'
+                }}>
+                  <Box sx={{
+                    width: 60,
+                    height: 60,
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #6c757d, #adb5bd)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mx: 'auto',
+                    mb: 2
+                  }}>
+                    <Build sx={{ fontSize: 30, color: 'white' }} />
+                  </Box>
+                  <Typography variant="subtitle1" color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
+                    Nenhuma oficina encontrada
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: 250, mx: 'auto' }}>
+                    Explore todas as opções disponíveis!
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    component={Link}
+                    to="/workshops"
+                    size="small"
+                    sx={{
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      fontWeight: 600,
+                      px: 3
+                    }}
+                  >
+                    🔍 Buscar Oficinas
+                  </Button>
+                </Box>
+              )}
+            </Paper>
+          )}
 
           {/* Notificações - Design Moderno */}
           <Paper sx={{ 
@@ -1124,7 +1095,7 @@ const Dashboard = () => {
                       
                       {selectedWorkshop.distance && (
                         <Typography variant="body1" color="primary.main" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-                          📏 Distância: {selectedWorkshop.distance.toFixed(1)} km
+                          📏 Distância: {selectedWorkshop.distance}
                         </Typography>
                       )}
                     </Grid>

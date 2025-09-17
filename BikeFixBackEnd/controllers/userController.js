@@ -1,6 +1,7 @@
 const { validationResult } = require('express-validator');
 const User = require('../models/User');
 const mongoose = require('mongoose');
+const { geocodeUserAddress } = require('../services/geocodingService');
 
 // Obter perfil do usuário
 const getProfile = async (req, res) => {
@@ -50,61 +51,75 @@ const updateProfile = async (req, res) => {
 
     let updateData = { ...req.body };
 
-    // Processar dados de endereço baseado no tipo de usuário
-    const addressFields = ['address', 'city', 'state', 'zipCode'];
-    const hasAddressData = addressFields.some(field => updateData[field]);
+    // Processar dados de endereço
+    const hasAddressData = updateData.address && (
+      updateData.address.street || 
+      updateData.address.city || 
+      updateData.address.state || 
+      updateData.address.zipCode
+    );
+    
+    console.log('Dados recebidos para atualização:', updateData);
+    console.log('Tem dados de endereço:', hasAddressData);
     
     if (hasAddressData) {
-      if (currentUser.userType === 'workshop') {
-        // Para oficinas, mover dados de endereço para workshopData.address
-        if (updateData.address) {
-          updateData['workshopData.address.street'] = updateData.address;
-          delete updateData.address;
-        }
-        if (updateData.city) {
-          updateData['workshopData.address.city'] = updateData.city;
-          delete updateData.city;
-        }
-        if (updateData.state) {
-          updateData['workshopData.address.state'] = updateData.state;
-          delete updateData.state;
-        }
-        if (updateData.zipCode) {
-          updateData['workshopData.address.zipCode'] = updateData.zipCode;
-          delete updateData.zipCode;
-        }
-      } else if (currentUser.userType === 'cyclist') {
-        // Para ciclistas, mover dados de endereço para cyclistData.address
-        if (updateData.address) {
-          updateData['cyclistData.address.street'] = updateData.address;
-          delete updateData.address;
-        }
-        if (updateData.city) {
-          updateData['cyclistData.address.city'] = updateData.city;
-          delete updateData.city;
-        }
-        if (updateData.state) {
-          updateData['cyclistData.address.state'] = updateData.state;
-          delete updateData.state;
-        }
-        if (updateData.zipCode) {
-          updateData['cyclistData.address.zipCode'] = updateData.zipCode;
-          delete updateData.zipCode;
-        }
-      }
+      console.log('Dados de endereço detectados:', updateData.address);
     }
 
+    // Atualizar dados do usuário
     const user = await User.findByIdAndUpdate(
       req.user.id,
       { $set: updateData },
       { new: true, runValidators: true }
     ).select('-password');
 
-    res.json({
-      success: true,
-      message: 'Perfil atualizado com sucesso',
-      data: user
-    });
+    // Se há dados de endereço, tentar geocodificar
+    if (hasAddressData) {
+      console.log('Dados de endereço detectados, tentando geocodificação...');
+      
+      try {
+        // Geocodificar o endereço
+        const userDataWithCoordinates = await geocodeUserAddress(user.toObject(), currentUser.userType === 'workshop' ? 'workshop' : currentUser.userType);
+        
+        // Se conseguiu geocodificar, atualizar com as coordenadas
+        if (userDataWithCoordinates.address?.coordinates) {
+          const finalUser = await User.findByIdAndUpdate(
+            req.user.id,
+            { $set: { 'address.coordinates': userDataWithCoordinates.address.coordinates } },
+            { new: true, runValidators: true }
+          ).select('-password');
+          
+          console.log('Perfil atualizado com coordenadas:', finalUser.address);
+          
+          res.json({
+            success: true,
+            message: 'Perfil atualizado com sucesso (incluindo coordenadas)',
+            data: finalUser
+          });
+        } else {
+          console.log('Geocodificação falhou, mas dados de endereço foram salvos');
+          res.json({
+            success: true,
+            message: 'Perfil atualizado com sucesso (coordenadas não disponíveis)',
+            data: user
+          });
+        }
+      } catch (geocodeError) {
+        console.error('Erro na geocodificação:', geocodeError);
+        res.json({
+          success: true,
+          message: 'Perfil atualizado com sucesso (erro na geocodificação)',
+          data: user
+        });
+      }
+    } else {
+      // Atualização normal sem dados de endereço
+      res.json({
+        success: true,
+        message: 'Perfil atualizado com sucesso',
+        data: user
+      });
+    }
   } catch (error) {
     console.error('Erro ao atualizar perfil:', error);
     res.status(500).json({

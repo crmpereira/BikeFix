@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 const { authenticateToken } = require('../middleware/auth');
+const { geocodeAddress } = require('../services/geocodingService');
 const {
   validateRegister,
   validateLogin,
@@ -276,5 +277,97 @@ router.get('/verify-token', authenticateToken, (req, res) => {
  * @access  Private
  */
 router.get('/me', authenticateToken, authController.getProfile);
+
+/**
+ * @swagger
+ * /api/auth/geocode:
+ *   post:
+ *     summary: Geocodifica um endereço
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - address
+ *             properties:
+ *               address:
+ *                 type: object
+ *                 properties:
+ *                   street:
+ *                     type: string
+ *                   city:
+ *                     type: string
+ *                   state:
+ *                     type: string
+ *                   zipCode:
+ *                     type: string
+ *     responses:
+ *       200:
+ *         description: Coordenadas obtidas com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 coordinates:
+ *                   type: object
+ *                   properties:
+ *                     lat:
+ *                       type: number
+ *                     lng:
+ *                       type: number
+ *       400:
+ *         description: Dados de endereço inválidos
+ *       500:
+ *         description: Erro interno do servidor
+ */
+router.post('/geocode', async (req, res) => {
+  try {
+    const { address } = req.body;
+    
+    console.log('Dados recebidos na rota geocode:', { address, type: typeof address });
+    
+    if (!address) {
+      return res.status(400).json({
+        success: false,
+        message: 'Dados de endereço são obrigatórios'
+      });
+    }
+    
+    // Se address é uma string, converte para objeto
+    let addressObj = address;
+    if (typeof address === 'string') {
+      addressObj = { street: address };
+    }
+    
+    console.log('Objeto de endereço para geocodificação:', addressObj);
+    
+    const coordinates = await geocodeAddress(addressObj);
+    
+    if (!coordinates) {
+      return res.status(400).json({
+        success: false,
+        message: 'Não foi possível geocodificar o endereço fornecido'
+      });
+    }
+    
+    res.json({
+      success: true,
+      coordinates
+    });
+    
+  } catch (error) {
+    console.error('Erro na geocodificação:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor'
+    });
+  }
+});
 
 module.exports = router;

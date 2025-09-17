@@ -1,7 +1,7 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
 // Configurar axios
 const api = axios.create({
@@ -41,25 +41,6 @@ api.interceptors.response.use(
 );
 
 const appointmentService = {
-  // Testar autenticação
-  testAuth: async () => {
-    try {
-      console.log('appointmentService - Testando autenticação...');
-      const response = await api.get('/appointments/test-auth');
-      console.log('appointmentService - Teste de autenticação:', response);
-      return {
-        success: true,
-        data: response.data
-      };
-    } catch (error) {
-      console.error('appointmentService - Erro no teste de autenticação:', error);
-      return {
-        success: false,
-        message: error.response?.data?.message || 'Erro no teste de autenticação',
-        error: error.response?.data
-      };
-    }
-  },
 
   // Criar novo agendamento
   createAppointment: async (appointmentData) => {
@@ -156,7 +137,7 @@ const appointmentService = {
   },
 
   // Buscar agendamentos da oficina
-  getWorkshopAppointments: async (filters = {}) => {
+  getWorkshopAppointments: async (workshopId, filters = {}) => {
     try {
       const params = new URLSearchParams();
       
@@ -165,10 +146,14 @@ const appointmentService = {
       if (filters.page) params.append('page', filters.page);
       if (filters.limit) params.append('limit', filters.limit);
       
-      const response = await api.get(`/appointments/workshop?${params.toString()}`);
+      const url = workshopId 
+        ? `/appointments/workshop/${workshopId}?${params.toString()}`
+        : `/appointments/workshop?${params.toString()}`;
+        
+      const response = await api.get(url);
       return {
         success: true,
-        data: response.data.data,
+        data: response.data.data || response.data,
         pagination: response.data.pagination
       };
     } catch (error) {
@@ -177,7 +162,7 @@ const appointmentService = {
       return {
         success: false,
         message,
-        error: error.response?.data
+        status: error.response?.status
       };
     }
   },
@@ -358,7 +343,7 @@ const appointmentService = {
       workshop: {
         id: appointment.workshop._id,
         name: appointment.workshop.workshopData?.businessName || appointment.workshop.name,
-        address: appointment.workshop.workshopData?.address || {},
+        address: appointment.workshop.address || {},
         phone: appointment.workshop.workshopData?.phone || '',
         rating: appointment.workshop.workshopData?.rating || 0
       },

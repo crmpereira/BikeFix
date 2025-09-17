@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
 const { sendEmail } = require('../utils/emailService');
+const { geocodeUserAddress } = require('../services/geocodingService');
 
 // Gerar token JWT
 const generateToken = (userId) => {
@@ -42,6 +43,7 @@ const register = async (req, res) => {
       name,
       email,
       password,
+      phone,
       userType,
       verificationToken,
       verificationExpires
@@ -49,10 +51,11 @@ const register = async (req, res) => {
 
     // Adicionar dados específicos do tipo de usuário
     if (userType === 'workshop' && workshopData) {
+      console.log('WorkshopData recebido:', JSON.stringify(workshopData, null, 2));
       userData.workshopData = {
-        ...workshopData,
-        status: 'pending' // Oficinas precisam ser aprovadas
+        ...workshopData
       };
+      console.log('UserData após adicionar workshopData:', JSON.stringify(userData.workshopData, null, 2));
     } else if (userType === 'cyclist' && cyclistData) {
       console.log('Dados do ciclista recebidos:', cyclistData);
       userData.cyclistData = {
@@ -62,8 +65,15 @@ const register = async (req, res) => {
       console.log('Dados do ciclista processados:', userData.cyclistData);
     }
 
-    const user = new User(userData);
+    // Geocodificar endereço se disponível
+    console.log('UserData antes da geocodificação:', JSON.stringify(userData, null, 2));
+    const userDataWithCoordinates = await geocodeUserAddress(userData, userType);
+    console.log('UserData após geocodificação:', JSON.stringify(userDataWithCoordinates, null, 2));
+
+    const user = new User(userDataWithCoordinates);
+    console.log('Dados que serão salvos no banco:', JSON.stringify(user.toObject(), null, 2));
     await user.save();
+    console.log('Usuário salvo com sucesso. ID:', user._id);
 
     // Enviar email de verificação
     const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;

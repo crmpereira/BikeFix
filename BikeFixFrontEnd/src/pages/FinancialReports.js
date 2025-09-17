@@ -85,29 +85,58 @@ const FinancialReports = () => {
       
       // Definir datas baseado no range selecionado
       const dates = getDateRange();
+      console.log('📅 Date range:', dates);
       
       // Buscar dados de pagamento
-      let paymentsResponse;
-      if (user.userType === 'workshop') {
-        paymentsResponse = await paymentService.getUserPayments(user.id);
-      } else {
-        paymentsResponse = await paymentService.getPaymentStats();
+      let paymentsResponse = { data: [] };
+      try {
+        if (user.userType === 'workshop') {
+          console.log('🔍 Buscando pagamentos da oficina...');
+          paymentsResponse = await paymentService.getUserPayments();
+        } else {
+          console.log('🔍 Buscando estatísticas de pagamento...');
+          paymentsResponse = await paymentService.getPaymentStats();
+        }
+        console.log('💰 Payments response:', paymentsResponse);
+      } catch (paymentError) {
+        console.error('❌ Erro ao buscar pagamentos:', paymentError);
+        console.error('❌ Detalhes do erro de pagamento:', paymentError.response?.data || paymentError.message);
       }
       
       // Buscar agendamentos para análise detalhada
-      let appointmentsResponse;
-      if (user.userType === 'workshop') {
-        appointmentsResponse = await appointmentService.getWorkshopAppointments(user.id);
-      } else {
-        appointmentsResponse = await appointmentService.getAllAppointments();
+      let appointmentsResponse = { data: [] };
+      try {
+        if (user.userType === 'workshop') {
+          console.log('🔍 Buscando agendamentos da oficina...');
+          appointmentsResponse = await appointmentService.getWorkshopAppointments();
+        } else {
+          console.log('🔍 Buscando agendamentos do usuário...');
+          appointmentsResponse = await appointmentService.getUserAppointments();
+        }
+        console.log('📋 Appointments response:', appointmentsResponse);
+      } catch (appointmentError) {
+        console.error('❌ Erro ao buscar agendamentos:', appointmentError);
+        console.error('❌ Detalhes do erro de agendamento:', appointmentError.response?.data || appointmentError.message);
       }
       
-      // Processar dados
-      processFinancialData(paymentsResponse.data || [], appointmentsResponse.data || [], dates);
+      // Processar dados com validação
+      const paymentsData = Array.isArray(paymentsResponse?.data) ? paymentsResponse.data : [];
+      const appointmentsData = Array.isArray(appointmentsResponse?.data) ? appointmentsResponse.data : [];
+      
+      console.log('🔍 Dados de pagamentos extraídos:', paymentsData.length, 'itens');
+      console.log('🔍 Dados de agendamentos extraídos:', appointmentsData.length, 'itens');
+      
+      if (paymentsData.length === 0 && appointmentsData.length === 0) {
+        console.log('⚠️ Nenhum dado encontrado para o período selecionado');
+        toast.info('Nenhum dado financeiro encontrado para o período selecionado');
+      }
+      
+      processFinancialData(paymentsData, appointmentsData, dates);
       
     } catch (error) {
-      console.error('Erro ao carregar dados financeiros:', error);
-      toast.error('Erro ao carregar relatórios financeiros');
+      console.error('❌ Erro ao carregar dados financeiros:', error);
+      console.error('❌ Detalhes do erro:', error.response?.data || error.message);
+      toast.error(`Erro ao carregar relatórios financeiros: ${error.response?.data?.message || error.message}`);
       
       // Dados vazios em caso de erro
       setReportData({
@@ -130,7 +159,7 @@ const FinancialReports = () => {
   };
 
   const getDateRange = () => {
-    const end = new Date();
+    let end = new Date();
     let start = new Date();
     
     switch (dateRange) {
@@ -157,19 +186,178 @@ const FinancialReports = () => {
     return { start, end };
   };
 
+
+
   const processFinancialData = (payments, appointments, dateRange) => {
-    // Filtrar dados pelo período
+    console.log('🔄 Processando dados financeiros...');
+    console.log('📊 Appointments recebidos:', appointments.length);
+    console.log('💳 Payments recebidos:', payments.length);
+    console.log('📅 Período:', dateRange);
+    
+    // Validar se dateRange está definido
+    if (!dateRange || !dateRange.start || !dateRange.end) {
+      console.error('❌ DateRange inválido:', dateRange);
+      // Definir dados vazios mas válidos
+      setReportData({
+        summary: {
+          totalRevenue: 0,
+          grossRevenue: 0,
+          netRevenue: 0,
+          platformFees: 0,
+          totalTransactions: 0,
+          averageTicket: 0,
+          growth: 0
+        },
+        transactions: [],
+        monthlyData: [],
+        serviceBreakdown: []
+      });
+      return;
+    }
+    
+    // Se não há pagamentos, usar dados dos agendamentos completados
+    if (payments.length === 0) {
+      console.log('⚠️ Nenhum pagamento encontrado, usando dados dos agendamentos completados');
+      
+      // Filtrar agendamentos completados
+      const completedAppointments = appointments.filter(apt => {
+        return apt && apt.status === 'completed';
+      });
+      console.log('✅ Agendamentos completados encontrados:', completedAppointments.length);
+      console.log('📋 Agendamentos completados:', completedAppointments);
+      
+      // Se não há agendamentos completados, definir dados vazios
+      if (completedAppointments.length === 0) {
+        console.log('⚠️ Nenhum agendamento completado encontrado');
+        setReportData({
+          summary: {
+            totalRevenue: 0,
+            grossRevenue: 0,
+            netRevenue: 0,
+            platformFees: 0,
+            totalTransactions: 0,
+            averageTicket: 0,
+            growth: 0
+          },
+          transactions: [],
+          monthlyData: [],
+          serviceBreakdown: []
+        });
+        return;
+      }
+      
+      // Usar agendamentos completados como base para os relatórios
+      const filteredCompletedAppointments = completedAppointments.filter(apt => {
+        if (!apt.date) {
+          console.warn('⚠️ Agendamento sem data:', apt);
+          return false;
+        }
+        
+        const aptDate = new Date(apt.date);
+        if (isNaN(aptDate.getTime())) {
+          console.warn('⚠️ Data inválida no agendamento:', apt.date, apt);
+          return false;
+        }
+        
+        const isInRange = aptDate >= dateRange.start && aptDate <= dateRange.end;
+        console.log('📅 Filtro de data:', {
+          appointmentDate: aptDate.toISOString(),
+          startDate: dateRange.start.toISOString(),
+          endDate: dateRange.end.toISOString(),
+          isInRange
+        });
+        
+        return isInRange;
+      });
+      
+      // Calcular resumo baseado nos agendamentos
+      console.log('💰 Calculando valores financeiros para', filteredCompletedAppointments.length, 'agendamentos');
+      
+      // Se não há agendamentos no período, definir dados vazios
+      if (filteredCompletedAppointments.length === 0) {
+        console.log('⚠️ Nenhum agendamento encontrado no período selecionado');
+        setReportData({
+          summary: {
+            totalRevenue: 0,
+            grossRevenue: 0,
+            netRevenue: 0,
+            platformFees: 0,
+            totalTransactions: 0,
+            averageTicket: 0,
+            growth: 0
+          },
+          transactions: [],
+          monthlyData: [],
+          serviceBreakdown: []
+        });
+        return;
+      }
+      
+      const grossRevenue = filteredCompletedAppointments.reduce((sum, apt) => {
+        const price = parseFloat(apt.pricing?.totalPrice || apt.totalPrice || apt.price || 0);
+        console.log('💵 Preço do agendamento:', apt.id, price);
+        return sum + price;
+      }, 0);
+      
+      const platformFees = filteredCompletedAppointments.reduce((sum, apt) => {
+        const fee = parseFloat(apt.pricing?.platformFee || apt.platformFee || apt.fee || 0);
+        return sum + fee;
+      }, 0);
+      
+      const netRevenue = grossRevenue - platformFees;
+      const totalTransactions = filteredCompletedAppointments.length;
+      const averageTicket = totalTransactions > 0 ? grossRevenue / totalTransactions : 0;
+      
+      console.log('📊 Resumo financeiro calculado:', {
+        grossRevenue,
+        platformFees,
+        netRevenue,
+        totalTransactions,
+        averageTicket
+      });
+      
+      // Processar dados mensais
+      const monthlyData = processMonthlyData(filteredCompletedAppointments);
+      
+      // Processar breakdown por serviço
+      const serviceBreakdown = processServiceBreakdown(filteredCompletedAppointments);
+      
+      setReportData({
+        summary: {
+          totalRevenue: grossRevenue,
+          grossRevenue,
+          netRevenue,
+          platformFees,
+          totalTransactions,
+          averageTicket,
+          growth: 0
+        },
+        transactions: filteredCompletedAppointments,
+        monthlyData,
+        serviceBreakdown
+      });
+      return;
+    }
+    
+    // Filtrar dados pelo período (lógica original para quando há pagamentos)
     const filteredAppointments = appointments.filter(apt => {
       const aptDate = new Date(apt.date);
       return aptDate >= dateRange.start && aptDate <= dateRange.end && apt.status === 'completed';
     });
     
+    console.log('✅ Agendamentos filtrados (completed):', filteredAppointments.length);
+    console.log('📋 Agendamentos filtrados:', filteredAppointments);
+    
     // Calcular resumo
-    const grossRevenue = filteredAppointments.reduce((sum, apt) => sum + (apt.totalPrice || 0), 0);
-    const platformFees = filteredAppointments.reduce((sum, apt) => sum + (apt.platformFee || 0), 0);
+    const grossRevenue = filteredAppointments.reduce((sum, apt) => sum + (apt.pricing?.totalPrice || apt.totalPrice || 0), 0);
+    const platformFees = filteredAppointments.reduce((sum, apt) => sum + (apt.pricing?.platformFee || apt.platformFee || 0), 0);
     const netRevenue = grossRevenue - platformFees;
     const totalTransactions = filteredAppointments.length;
     const averageTicket = totalTransactions > 0 ? grossRevenue / totalTransactions : 0;
+    
+    console.log('💰 Receita bruta:', grossRevenue);
+    console.log('🏦 Taxas da plataforma:', platformFees);
+    console.log('💵 Receita líquida:', netRevenue);
     
     // Processar dados mensais
     const monthlyData = processMonthlyData(filteredAppointments);
@@ -194,10 +382,22 @@ const FinancialReports = () => {
   };
 
   const processMonthlyData = (appointments) => {
+    console.log('📊 Processando dados mensais para', appointments.length, 'agendamentos');
     const monthlyMap = new Map();
     
     appointments.forEach(apt => {
-      const month = new Date(apt.date).toISOString().slice(0, 7); // YYYY-MM
+      if (!apt.date) {
+        console.warn('⚠️ Agendamento sem data no processamento mensal:', apt);
+        return;
+      }
+      
+      const aptDate = new Date(apt.date);
+      if (isNaN(aptDate.getTime())) {
+        console.warn('⚠️ Data inválida no processamento mensal:', apt.date);
+        return;
+      }
+      
+      const month = aptDate.toISOString().slice(0, 7); // YYYY-MM
       if (!monthlyMap.has(month)) {
         monthlyMap.set(month, {
           month,
@@ -208,19 +408,25 @@ const FinancialReports = () => {
       }
       
       const data = monthlyMap.get(month);
-      data.revenue += apt.totalPrice || 0;
+      const revenue = parseFloat(apt.pricing?.totalPrice || apt.totalPrice || apt.price || 0);
+      const fee = parseFloat(apt.pricing?.platformFee || apt.platformFee || apt.fee || 0);
+      
+      data.revenue += revenue;
       data.transactions += 1;
-      data.platformFees += apt.platformFee || 0;
+      data.platformFees += fee;
     });
     
-    return Array.from(monthlyMap.values()).sort((a, b) => a.month.localeCompare(b.month));
+    const result = Array.from(monthlyMap.values()).sort((a, b) => a.month.localeCompare(b.month));
+    console.log('📈 Dados mensais processados:', result);
+    return result;
   };
 
   const processServiceBreakdown = (appointments) => {
+    console.log('🔧 Processando breakdown de serviços para', appointments.length, 'agendamentos');
     const serviceMap = new Map();
     
     appointments.forEach(apt => {
-      const service = apt.serviceType || apt.service || 'Outros';
+      const service = apt.serviceType || apt.service || apt.serviceName || 'Outros';
       if (!serviceMap.has(service)) {
         serviceMap.set(service, {
           service,
@@ -231,16 +437,20 @@ const FinancialReports = () => {
       }
       
       const data = serviceMap.get(service);
-      data.revenue += apt.totalPrice || 0;
+      const revenue = parseFloat(apt.pricing?.totalPrice || apt.totalPrice || apt.price || 0);
+      data.revenue += revenue;
       data.transactions += 1;
     });
     
     const totalRevenue = Array.from(serviceMap.values()).reduce((sum, item) => sum + item.revenue, 0);
     
-    return Array.from(serviceMap.values()).map(item => ({
+    const result = Array.from(serviceMap.values()).map(item => ({
       ...item,
       percentage: totalRevenue > 0 ? (item.revenue / totalRevenue) * 100 : 0
     })).sort((a, b) => b.revenue - a.revenue);
+    
+    console.log('🔧 Breakdown de serviços processado:', result);
+    return result;
   };
 
 
@@ -336,44 +546,50 @@ const FinancialReports = () => {
         <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
           Transações Detalhadas
         </Typography>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Data</TableCell>
-                <TableCell>Cliente</TableCell>
-                <TableCell>Serviço</TableCell>
-                <TableCell>Valor Bruto</TableCell>
-                <TableCell>Taxa Plataforma</TableCell>
-                <TableCell>Valor Líquido</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {reportData.transactions.slice(0, 10).map((transaction, index) => (
-                <TableRow key={transaction.id || index}>
-                  <TableCell>
-                    {new Date(transaction.date).toLocaleDateString('pt-BR')}
-                  </TableCell>
-                  <TableCell>
-                    {transaction.cyclist?.name || transaction.customerName || transaction.customer}
-                  </TableCell>
-                  <TableCell>
-                    {transaction.serviceType || transaction.service}
-                  </TableCell>
-                  <TableCell>
-                    R$ {(transaction.totalPrice || transaction.gross || 0).toLocaleString()}
-                  </TableCell>
-                  <TableCell>
-                    R$ {(transaction.platformFee || transaction.fee || 0).toLocaleString()}
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: 'success.main' }}>
-                    R$ {((transaction.totalPrice || transaction.gross || 0) - (transaction.platformFee || transaction.fee || 0)).toLocaleString()}
-                  </TableCell>
+        {reportData.transactions.length === 0 ? (
+          <Alert severity="info" sx={{ mt: 2 }}>
+            Nenhuma transação encontrada para o período selecionado.
+          </Alert>
+        ) : (
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Data</TableCell>
+                  <TableCell>Cliente</TableCell>
+                  <TableCell>Serviço</TableCell>
+                  <TableCell>Valor Bruto</TableCell>
+                  <TableCell>Taxa Plataforma</TableCell>
+                  <TableCell>Valor Líquido</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {reportData.transactions.slice(0, 10).map((transaction, index) => (
+                  <TableRow key={transaction._id || transaction.id || index}>
+                    <TableCell>
+                      {new Date(transaction.date).toLocaleDateString('pt-BR')}
+                    </TableCell>
+                    <TableCell>
+                      {transaction.cyclist?.name || transaction.customerName || transaction.customer || 'N/A'}
+                    </TableCell>
+                    <TableCell>
+                      {transaction.serviceType || transaction.service || transaction.serviceName || 'N/A'}
+                    </TableCell>
+                    <TableCell>
+                      R$ {(parseFloat(transaction.pricing?.totalPrice || transaction.totalPrice || transaction.price || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </TableCell>
+                    <TableCell>
+                      R$ {(parseFloat(transaction.pricing?.platformFee || transaction.platformFee || transaction.fee || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'success.main' }}>
+                      R$ {((parseFloat(transaction.pricing?.totalPrice || transaction.totalPrice || transaction.price || 0)) - (parseFloat(transaction.pricing?.platformFee || transaction.platformFee || transaction.fee || 0))).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </CardContent>
     </Card>
   );
@@ -386,30 +602,36 @@ const FinancialReports = () => {
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
               Evolução Mensal
             </Typography>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Mês</TableCell>
-                    <TableCell>Receita</TableCell>
-                    <TableCell>Transações</TableCell>
-                    <TableCell>Taxa Plataforma</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {reportData.monthlyData.map((data, index) => (
-                    <TableRow key={index}>
-                      <TableCell>
-                        {new Date(data.month + '-01').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
-                      </TableCell>
-                      <TableCell>R$ {data.revenue.toLocaleString()}</TableCell>
-                      <TableCell>{data.transactions}</TableCell>
-                      <TableCell>R$ {data.platformFees.toLocaleString()}</TableCell>
+            {reportData.monthlyData.length === 0 ? (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                Nenhum dado mensal encontrado para o período selecionado.
+              </Alert>
+            ) : (
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Mês</TableCell>
+                      <TableCell>Receita</TableCell>
+                      <TableCell>Transações</TableCell>
+                      <TableCell>Taxa Plataforma</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                  </TableHead>
+                  <TableBody>
+                    {reportData.monthlyData.map((data, index) => (
+                      <TableRow key={index}>
+                        <TableCell>
+                          {new Date(data.month + '-01').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                        </TableCell>
+                        <TableCell>R$ {(data.revenue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell>{data.transactions || 0}</TableCell>
+                        <TableCell>R$ {(data.platformFees || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
           </CardContent>
         </Card>
       </Grid>
@@ -420,28 +642,34 @@ const FinancialReports = () => {
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
               Breakdown por Serviço
             </Typography>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Serviço</TableCell>
-                    <TableCell>Receita</TableCell>
-                    <TableCell>Qtd</TableCell>
-                    <TableCell>%</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {reportData.serviceBreakdown.map((service, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{service.service}</TableCell>
-                      <TableCell>R$ {service.revenue.toLocaleString()}</TableCell>
-                      <TableCell>{service.transactions}</TableCell>
-                      <TableCell>{service.percentage.toFixed(1)}%</TableCell>
+            {reportData.serviceBreakdown.length === 0 ? (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                Nenhum dado de serviço encontrado para o período selecionado.
+              </Alert>
+            ) : (
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Serviço</TableCell>
+                      <TableCell>Receita</TableCell>
+                      <TableCell>Qtd</TableCell>
+                      <TableCell>%</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                  </TableHead>
+                  <TableBody>
+                    {reportData.serviceBreakdown.map((service, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{service.service || 'N/A'}</TableCell>
+                        <TableCell>R$ {(service.revenue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell>{service.transactions || 0}</TableCell>
+                        <TableCell>{(service.percentage || 0).toFixed(1)}%</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
           </CardContent>
         </Card>
       </Grid>

@@ -152,13 +152,13 @@ const WorkshopMap = ({ workshops, userLocation, onWorkshopSelect }) => {
     const bounds = new window.google.maps.LatLngBounds();
 
     workshops.forEach(workshop => {
-      if (!workshop.coordinates || !workshop.coordinates.lat || !workshop.coordinates.lng) {
+      if (!workshop.address?.coordinates || !workshop.address.coordinates.latitude || !workshop.address.coordinates.longitude) {
         return;
       }
 
       const position = {
-        lat: workshop.coordinates.lat,
-        lng: workshop.coordinates.lng
+        lat: workshop.address.coordinates.latitude,
+        lng: workshop.address.coordinates.longitude
       };
 
       const marker = new window.google.maps.Marker({

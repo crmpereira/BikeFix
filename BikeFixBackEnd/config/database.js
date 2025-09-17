@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const connectDB = async () => {
   try {
     // Priorizar MongoDB Atlas em produção, fallback para local em desenvolvimento
-    const mongoURI = process.env.MONGODB_ATLAS_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/bikefix';
+    const mongoURI = process.env.MONGODB_ATLAS_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/bikefix-dev';
     
     // Log da configuração (sem expor credenciais)
     const safeUri = mongoURI.replace(/:\/\/([^:]+):([^@]+)@/, '://***:***@');

@@ -41,6 +41,10 @@ pids
 *.seed
 *.pid.lock
 
+# MongoDB Local (dados e logs não devem estar no repositório)
+mongodb-data/
+mongodb-logs/
+
 # Development and test scripts
 test-*.js
 populate-*.js

@@ -145,24 +145,27 @@ const Home = () => {
                 >
                   Ir para Dashboard
                 </Button>
-                <Button
-                  variant="outlined"
-                  size="large"
-                  component={Link}
-                  to="/workshops"
-                  sx={{
-                    borderColor: 'white',
-                    color: 'white',
-                    '&:hover': {
+                {/* Mostrar "Buscar Oficinas" apenas para ciclistas e admins */}
+                {user?.userType !== 'workshop' && (
+                  <Button
+                    variant="outlined"
+                    size="large"
+                    component={Link}
+                    to="/workshops"
+                    sx={{
                       borderColor: 'white',
-                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    },
-                    px: 4,
-                    py: 1.5,
-                  }}
-                >
-                  Buscar Oficinas
-                </Button>
+                      color: 'white',
+                      '&:hover': {
+                        borderColor: 'white',
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      },
+                      px: 4,
+                      py: 1.5,
+                    }}
+                  >
+                    Buscar Oficinas
+                  </Button>
+                )}
               </>
             )}
           </Box>

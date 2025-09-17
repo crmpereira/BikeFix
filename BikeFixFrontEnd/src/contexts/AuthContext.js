@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
 import { authService } from '../services/authService';
+import { geocodeAddress } from '../services/backendGeocodingService';
 
 const AuthContext = createContext();
 
@@ -101,26 +102,78 @@ export const AuthProvider = ({ children }) => {
 
       // Adicionar dados específicos do tipo de usuário
       if (userData.userType === 'workshop') {
+        const addressData = {
+          street: userData.address,
+          city: userData.city,
+          state: userData.state,
+          zipCode: userData.zipCode
+        };
+        
+        // Tentar geocodificar o endereço
+        let coordinates = null;
+        try {
+          if (addressData.street || addressData.city || addressData.zipCode) {
+            console.log('Geocodificando endereço da oficina:', addressData);
+            
+            const geocodeResult = await geocodeAddress(addressData);
+            if (geocodeResult && geocodeResult.latitude && geocodeResult.longitude) {
+              coordinates = {
+                lat: geocodeResult.latitude,
+                lng: geocodeResult.longitude
+              };
+              console.log('Coordenadas obtidas:', coordinates);
+            } else {
+              console.warn('Geocodificação não retornou coordenadas válidas');
+            }
+          }
+        } catch (error) {
+          console.warn('Erro na geocodificação, continuando sem coordenadas:', error.message);
+        }
+        
         formattedData.workshopData = {
           businessName: userData.workshopName,
           cnpj: userData.cnpj,
           address: {
-            street: userData.address,
-            city: userData.city,
-            state: userData.state,
-            zipCode: userData.zipCode
+            ...addressData,
+            coordinates: coordinates
           },
           description: userData.description,
           services: userData.services
         };
       } else if (userData.userType === 'cyclist') {
+        const addressData = {
+          street: userData.address,
+          city: userData.city,
+          state: userData.state,
+          zipCode: userData.zipCode
+        };
+        
+        // Tentar geocodificar o endereço
+        let coordinates = null;
+        try {
+          if (addressData.street || addressData.city || addressData.zipCode) {
+            console.log('Geocodificando endereço do ciclista:', addressData);
+            
+            const geocodeResult = await geocodeAddress(addressData);
+            if (geocodeResult && geocodeResult.latitude && geocodeResult.longitude) {
+              coordinates = {
+                lat: geocodeResult.latitude,
+                lng: geocodeResult.longitude
+              };
+              console.log('Coordenadas obtidas:', coordinates);
+            } else {
+              console.warn('Geocodificação não retornou coordenadas válidas');
+            }
+          }
+        } catch (error) {
+          console.warn('Erro na geocodificação, continuando sem coordenadas:', error.message);
+        }
+        
         formattedData.cyclistData = {
           bikeType: userData.bikeType,
           address: {
-            street: userData.address,
-            city: userData.city,
-            state: userData.state,
-            zipCode: userData.zipCode
+            ...addressData,
+            coordinates: coordinates
           },
           bikes: userData.bikes || []
         };

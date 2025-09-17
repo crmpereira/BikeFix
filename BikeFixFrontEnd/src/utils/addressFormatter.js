@@ -57,9 +57,9 @@ export const formatAddress = (address, options = {}) => {
 
     // Adiciona coordenadas se solicitado
     if (includeCoordinates && address.coordinates) {
-      const { lat, lng } = address.coordinates;
-      if (lat && lng) {
-        parts.push(`(${lat.toFixed(6)}, ${lng.toFixed(6)})`);
+      const { latitude, longitude } = address.coordinates;
+      if (latitude && longitude) {
+        parts.push(`(${latitude.toFixed(6)}, ${longitude.toFixed(6)})`);
       }
     }
 
@@ -129,9 +129,9 @@ export const getAddressCoordinates = (address) => {
     return null;
   }
 
-  const { lat, lng } = address.coordinates;
-  if (typeof lat === 'number' && typeof lng === 'number') {
-    return { lat, lng };
+  const { latitude, longitude } = address.coordinates;
+  if (typeof latitude === 'number' && typeof longitude === 'number') {
+    return { lat: latitude, lng: longitude };
   }
 
   return null;

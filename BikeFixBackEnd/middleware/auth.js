@@ -14,8 +14,11 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
+    console.log('🔐 Auth middleware - Token recebido:', token.substring(0, 50) + '...');
+    console.log('🔑 Auth middleware - JWT_SECRET:', process.env.JWT_SECRET ? 'Definido' : 'Não definido');
+    
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('Auth middleware - Token decodificado:', { userId: decoded.userId });
+    console.log('✅ Auth middleware - Token decodificado:', { userId: decoded.userId });
     
     // Buscar usuário no banco de dados
     const user = await User.findById(decoded.userId).select('-password');

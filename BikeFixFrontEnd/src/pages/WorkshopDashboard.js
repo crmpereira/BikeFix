@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Container,
@@ -74,7 +74,7 @@ const WorkshopDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [appointments, setAppointments] = useState([]);
   const [stats, setStats] = useState({
-    todayAppointments: 0,
+    monthlyAppointments: 0,
     weekRevenue: 0,
     weekGrossRevenue: 0,
     weekNetRevenue: 0,
@@ -91,13 +91,12 @@ const WorkshopDashboard = () => {
   const [notifications, setNotifications] = useState([]);
 
   // Função para carregar agendamentos da oficina
-  const loadWorkshopAppointments = async () => {
+  const loadWorkshopAppointments = useCallback(async () => {
     try {
       setLoadingData(true);
+      console.log('Debug - Carregando agendamentos para usuário:', user.id);
       const response = await appointmentService.getWorkshopAppointments(user.id);
       setAppointments(response.data || []);
-      
-      // Calcular estatísticas baseadas nos agendamentos
       await calculateStats(response.data || []);
     } catch (error) {
       console.error('Erro ao carregar agendamentos:', error);
@@ -105,56 +104,99 @@ const WorkshopDashboard = () => {
     } finally {
       setLoadingData(false);
     }
-  };
+  }, [user.id]);
 
   // Função para calcular estatísticas
   const calculateStats = async (appointmentsData) => {
-    const today = new Date().toISOString().split('T')[0];
-    const todayAppointments = appointmentsData.filter(apt => apt.date === today).length;
-    
-    // Calcular receita da semana (últimos 7 dias)
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const weekCompletedAppointments = appointmentsData
-      .filter(apt => new Date(apt.date) >= weekAgo && apt.status === 'completed');
-    
-    const weekRevenue = weekCompletedAppointments
-      .reduce((sum, apt) => sum + (apt.totalPrice || 0), 0);
-    
-    // Calcular receita bruta e líquida da semana
-    const weekGrossRevenue = weekCompletedAppointments
-      .reduce((sum, apt) => sum + (apt.totalPrice || 0), 0);
-    const weekPlatformFees = weekCompletedAppointments
-      .reduce((sum, apt) => sum + (apt.platformFee || 0), 0);
-    const weekNetRevenue = weekGrossRevenue - weekPlatformFees;
-    
-    // Calcular receita mensal (últimos 30 dias)
-    const monthAgo = new Date();
-    monthAgo.setDate(monthAgo.getDate() - 30);
-    const monthCompletedAppointments = appointmentsData
-      .filter(apt => new Date(apt.date) >= monthAgo && apt.status === 'completed');
-    
-    const monthlyGrossRevenue = monthCompletedAppointments
-      .reduce((sum, apt) => sum + (apt.totalPrice || 0), 0);
-    const monthlyPlatformFees = monthCompletedAppointments
-      .reduce((sum, apt) => sum + (apt.platformFee || 0), 0);
-    const monthlyNetRevenue = monthlyGrossRevenue - monthlyPlatformFees;
-    
-    const pendingQuotes = appointmentsData.filter(apt => apt.status === 'pending').length;
-    
-    setStats({
-      todayAppointments,
-      weekRevenue,
-      weekGrossRevenue,
-      weekNetRevenue,
-      monthlyGrossRevenue,
-      monthlyNetRevenue,
-      platformFeeTotal: monthlyPlatformFees,
-      monthlyGrowth: 0, // Seria calculado com dados históricos
-      pendingQuotes,
-      averageRating: user.workshopData?.rating?.average || 0,
-      totalReviews: user.workshopData?.rating?.count || 0,
-    });
+    try {
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+
+      // Filtrar agendamentos do mês atual
+      const currentMonthAppointments = appointmentsData.filter(apt => {
+        const aptDate = new Date(apt.appointmentDate || apt.date);
+        return aptDate.getMonth() === currentMonth && aptDate.getFullYear() === currentYear;
+      });
+
+      // Contar por status
+      const statusCounts = currentMonthAppointments.reduce((acc, apt) => {
+        const status = apt.status || 'pending';
+        acc[status] = (acc[status] || 0) + 1;
+        return acc;
+      }, {});
+
+      // Calcular receita do mês (apenas agendamentos concluídos)
+      const completedAppointments = currentMonthAppointments.filter(apt => 
+        apt.status === 'completed'
+      );
+
+      let monthlyRevenue = 0;
+      
+      for (const apt of completedAppointments) {
+        try {
+          // Buscar configuração de comissão
+          const commissionResponse = await fetch('/api/commission/config', {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+          
+          let commissionRate = 0.10; // 10% padrão
+          if (commissionResponse.ok) {
+            const commissionData = await commissionResponse.json();
+            commissionRate = commissionData.rate || 0.10;
+          }
+
+          const appointmentValue = apt.totalPrice || apt.price || 0;
+          const workshopRevenue = appointmentValue * (1 - commissionRate);
+          monthlyRevenue += workshopRevenue;
+        } catch (error) {
+          console.error('Erro ao calcular comissão:', error);
+          const appointmentValue = apt.totalPrice || apt.price || 0;
+          monthlyRevenue += appointmentValue * 0.90;
+        }
+      }
+
+      // Calcular crescimento (comparar com mês anterior)
+      const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+      const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+      
+      const lastMonthAppointments = appointmentsData.filter(apt => {
+        const aptDate = new Date(apt.appointmentDate || apt.date);
+        return aptDate.getMonth() === lastMonth && aptDate.getFullYear() === lastMonthYear;
+      });
+
+      const lastMonthCompleted = lastMonthAppointments.filter(apt => apt.status === 'completed');
+      let lastMonthRevenue = 0;
+      
+      for (const apt of lastMonthCompleted) {
+        const appointmentValue = apt.totalPrice || apt.price || 0;
+        lastMonthRevenue += appointmentValue * 0.90;
+      }
+
+      const growth = lastMonthRevenue > 0 
+        ? ((monthlyRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 
+        : 0;
+
+      setStats({
+        totalAppointments: currentMonthAppointments.length,
+        pendingAppointments: statusCounts.pending || 0,
+        completedAppointments: statusCounts.completed || 0,
+        monthlyRevenue: monthlyRevenue,
+        growth: growth
+      });
+
+    } catch (error) {
+      console.error('Erro ao calcular estatísticas:', error);
+      setStats({
+        totalAppointments: 0,
+        pendingAppointments: 0,
+        completedAppointments: 0,
+        monthlyRevenue: 0,
+        growth: 0
+      });
+    }
   };
 
   useEffect(() => {
@@ -166,7 +208,7 @@ const WorkshopDashboard = () => {
     
     // Carregar dados da oficina
     loadWorkshopAppointments();
-  }, [user, navigate]);
+  }, [user, navigate, loadWorkshopAppointments]);
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -307,10 +349,10 @@ const WorkshopDashboard = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box>
                 <Typography color="textSecondary" gutterBottom variant="body2">
-                  Agendamentos Hoje
+                  Agendamentos do Mês
                 </Typography>
                 <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                  {stats.todayAppointments}
+                  {stats.monthlyAppointments}
                 </Typography>
               </Box>
               <Avatar sx={{ bgcolor: 'primary.main' }}>
@@ -399,7 +441,7 @@ const WorkshopDashboard = () => {
                 Receita Bruta
               </Typography>
               <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                R$ {stats.monthlyGrossRevenue.toLocaleString()}
+                R$ {(stats.monthlyGrossRevenue || 0).toLocaleString()}
               </Typography>
             </Box>
             <Box sx={{ mb: 2 }}>
@@ -407,7 +449,7 @@ const WorkshopDashboard = () => {
                 Taxa da Plataforma
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 600, color: 'warning.main' }}>
-                - R$ {stats.platformFeeTotal.toLocaleString()}
+                - R$ {(stats.platformFeeTotal || 0).toLocaleString()}
               </Typography>
             </Box>
             <Divider sx={{ my: 1 }} />
@@ -416,7 +458,7 @@ const WorkshopDashboard = () => {
                 Receita Líquida
               </Typography>
               <Typography variant="h5" sx={{ fontWeight: 600, color: 'success.main' }}>
-                R$ {stats.monthlyNetRevenue.toLocaleString()}
+                R$ {(stats.monthlyNetRevenue || 0).toLocaleString()}
               </Typography>
             </Box>
           </CardContent>
@@ -427,7 +469,7 @@ const WorkshopDashboard = () => {
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-              Agendamentos de Hoje
+              Agendamentos do Mês
             </Typography>
             <TableContainer>
               <Table>
@@ -441,10 +483,14 @@ const WorkshopDashboard = () => {
                 </TableHead>
                 <TableBody>
                   {appointments.filter(apt => {
-                    const today = new Date().toISOString().split('T')[0];
-                    const aptDate = new Date(apt.appointmentDate || apt.date).toISOString().split('T')[0];
-                    return aptDate === today;
-                  }).slice(0, 3).map((appointment) => (
+              const currentDate = new Date();
+              const currentMonth = currentDate.getMonth();
+              const currentYear = currentDate.getFullYear();
+              const aptDate = new Date(apt.appointmentDate || apt.date);
+              const isCurrentMonth = aptDate.getMonth() === currentMonth && aptDate.getFullYear() === currentYear;
+              console.log(`Filtro tabela - Agendamento ${apt._id}: ${isCurrentMonth ? 'INCLUÍDO' : 'EXCLUÍDO'}`);
+              return isCurrentMonth;
+            }).slice(0, 3).map((appointment) => (
                     <TableRow key={appointment._id || appointment.id}>
                       <TableCell>
                         <Box>
@@ -614,7 +660,7 @@ const WorkshopDashboard = () => {
           <TableBody>
             {filteredAppointments.map((appointment) => (
               <TableRow 
-                key={appointment.id}
+                key={appointment.id || appointment._id}
                 sx={{
                   backgroundColor: appointment.urgency === 'high' ? 'error.light' : 'inherit',
                   '&:hover': {
@@ -696,8 +742,13 @@ const WorkshopDashboard = () => {
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    R$ {(appointment.totalPrice || appointment.price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    R$ {(appointment.pricing?.totalPrice || appointment.totalPrice || appointment.price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </Typography>
+                  {appointment.pricing?.platformFee && (
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Taxa: R$ {appointment.pricing.platformFee.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </Typography>
+                  )}
                 </TableCell>
                 <TableCell>
                   <IconButton
@@ -756,20 +807,11 @@ const WorkshopDashboard = () => {
         <Tabs value={tabValue} onChange={handleTabChange}>
           <Tab label="Visão Geral" />
           <Tab label="Agendamentos" />
-          <Tab label="Relatórios" />
         </Tabs>
       </Box>
 
       {tabValue === 0 && renderOverview()}
       {tabValue === 1 && renderAppointments()}
-      {tabValue === 2 && (
-        <Box sx={{ textAlign: 'center', py: 8 }}>
-          <Assignment sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-          <Typography variant="h6" color="text.secondary">
-            Relatórios em desenvolvimento
-          </Typography>
-        </Box>
-      )}
 
       {/* Modal de Ações para Agendamentos */}
       <Dialog open={actionModalOpen} onClose={() => setActionModalOpen(false)} maxWidth="sm" fullWidth>

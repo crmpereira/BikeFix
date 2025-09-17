@@ -97,13 +97,66 @@ const Appointment = () => {
   const loadWorkshops = useCallback(async () => {
     try {
       setLoadingWorkshops(true);
+      console.log('🔍 Carregando oficinas próximas para agendamento...');
+      
+      // Tentar obter localização do usuário para oficinas próximas
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            try {
+              const { latitude, longitude } = position.coords;
+              console.log('📍 Localização obtida para agendamento:', { latitude, longitude });
+              
+              const response = await workshopService.getNearbyWorkshops(latitude, longitude, 15);
+              console.log('📡 Resposta oficinas próximas:', response);
+              
+              if (response.success && response.data && response.data.length > 0) {
+                const formattedWorkshops = response.data.map(workshop => 
+                  workshopService.formatWorkshopForFrontend(workshop)
+                );
+                console.log('✅ Oficinas próximas carregadas:', formattedWorkshops.length);
+                setWorkshops(formattedWorkshops);
+              } else {
+                console.log('⚠️ Nenhuma oficina próxima, carregando todas...');
+                await loadAllWorkshops();
+              }
+            } catch (error) {
+              console.error('❌ Erro ao buscar oficinas próximas:', error);
+              await loadAllWorkshops();
+            } finally {
+              setLoadingWorkshops(false);
+            }
+          },
+          async (error) => {
+            console.warn('⚠️ Geolocalização negada ou indisponível:', error.message);
+            await loadAllWorkshops();
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 300000
+          }
+        );
+      } else {
+        console.log('❌ Geolocalização não suportada');
+        await loadAllWorkshops();
+      }
+    } catch (error) {
+      console.error('❌ Erro geral ao carregar oficinas:', error);
+      await loadAllWorkshops();
+    }
+  }, []);
+
+  const loadAllWorkshops = async () => {
+    try {
+      console.log('🔄 Carregando todas as oficinas como fallback...');
       const response = await workshopService.getAllWorkshops();
       
       if (response.success && response.data) {
-        const formattedWorkshops = response.data.map(workshop => ({
-          ...workshop,
-          id: workshop._id
-        }));
+        const formattedWorkshops = response.data.map(workshop => 
+          workshopService.formatWorkshopForFrontend(workshop)
+        );
+        console.log('✅ Oficinas formatadas:', formattedWorkshops.length, 'oficinas');
         setWorkshops(formattedWorkshops);
       } else {
         toast.error('Erro ao carregar oficinas');
@@ -114,7 +167,7 @@ const Appointment = () => {
     } finally {
       setLoadingWorkshops(false);
     }
-  }, []);
+  };
 
   const loadUserBikes = useCallback(async () => {
     try {
@@ -188,14 +241,16 @@ const Appointment = () => {
     }
 
     try {
+
       const appointmentPayload = {
-        workshopId: selectedWorkshop._id,
+        workshopId: selectedWorkshop.id,
         appointmentDate: appointmentData.date,
         appointmentTime: appointmentData.time,
+        serviceType: 'custom',
         urgency: appointmentData.urgency,
         requestedServices: selectedServices.map(service => ({
           name: service.name,
-          price: service.basePrice || service.price,
+          estimatedPrice: service.basePrice || service.price,
           estimatedTime: service.estimatedTime
         })),
         bikeInfo: {
@@ -204,8 +259,8 @@ const Appointment = () => {
           year: selectedBikes[0]?.year || '',
           type: selectedBikes[0]?.type || ''
         },
-        description: appointmentData.description
-      };
+        problemDescription: appointmentData.description
+      }
 
       const response = await appointmentService.createAppointment(appointmentPayload);
       

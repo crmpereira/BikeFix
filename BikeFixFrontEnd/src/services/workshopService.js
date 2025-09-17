@@ -1,7 +1,7 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
 // Configurar axios para workshops
 const workshopAPI = axios.create({
@@ -171,9 +171,15 @@ const workshopService = {
       description: workshop.description,
       city: workshop.address?.city || '',
       state: workshop.address?.state || '',
-      address: workshop.address?.street || '',
+      address: {
+        street: workshop.address?.street || '',
+        city: workshop.address?.city || '',
+        state: workshop.address?.state || '',
+        zipCode: workshop.address?.zipCode || '',
+        coordinates: workshop.address?.coordinates || null
+      },
       zipCode: workshop.address?.zipCode || '',
-      coordinates: workshop.address?.coordinates || null,
+      coordinates: workshop.address?.coordinates || null, // Manter para compatibilidade
       workingHours: workshop.workingHours || {},
       services: workshop.services || [],
       serviceNames: workshop.services?.map(service => service.name) || [],
@@ -273,13 +279,13 @@ const workshopService = {
     
     // Adicionar distância a cada oficina se a localização do usuário estiver disponível
     const workshopsWithDistance = workshops.map(workshop => {
-      if (userLocation && workshop.coordinates && workshop.coordinates.lat && workshop.coordinates.lng) {
-        const distance = this.calculateDistance(
-          userLocation.lat,
-          userLocation.lng,
-          workshop.coordinates.lat,
-          workshop.coordinates.lng
-        );
+      if (userLocation && workshop.address?.coordinates && workshop.address.coordinates.latitude && workshop.address.coordinates.longitude) {
+          const distance = this.calculateDistance(
+            userLocation.lat,
+            userLocation.lng,
+            workshop.address.coordinates.latitude,
+            workshop.address.coordinates.longitude
+          );
         return { ...workshop, distance };
       }
       return workshop;

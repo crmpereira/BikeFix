@@ -50,38 +50,19 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
   const [searchingCEP, setSearchingCEP] = useState(false);
   
-  // Função para obter dados de endereço baseado no tipo de usuário
+  // Função para obter dados de endereço dos campos padronizados na raiz
   const getAddressData = (userData) => {
     if (!userData) return { address: '', city: '', state: '', zipCode: '' };
     
     console.log('getAddressData - userData:', userData);
     
-    if (userData.userType === 'cyclist' && userData.cyclistData?.address) {
-      console.log('getAddressData - Usando cyclistData.address:', userData.cyclistData.address);
-      return {
-        address: userData.cyclistData.address.street || '',
-        city: userData.cyclistData.address.city || '',
-        state: userData.cyclistData.address.state || '',
-        zipCode: userData.cyclistData.address.zipCode || '',
-      };
-    } else if (userData.userType === 'workshop' && userData.workshopData?.address) {
-      console.log('getAddressData - Usando workshopData.address:', userData.workshopData.address);
-      return {
-        address: userData.workshopData.address.street || '',
-        city: userData.workshopData.address.city || '',
-        state: userData.workshopData.address.state || '',
-        zipCode: userData.workshopData.address.zipCode || '',
-      };
-    } else {
-      // Fallback para dados no nível raiz (compatibilidade)
-      console.log('getAddressData - Usando fallback, dados raiz');
-      return {
-        address: userData.address || '',
-        city: userData.city || '',
-        state: userData.state || '',
-        zipCode: userData.zipCode || '',
-      };
-    }
+    // Usar campos padronizados na raiz do schema User
+    return {
+      address: userData.address?.street || '',
+      city: userData.address?.city || '',
+      state: userData.address?.state || '',
+      zipCode: userData.address?.zipCode || '',
+    };
   };
 
   const [formData, setFormData] = useState({
@@ -168,7 +149,23 @@ const Profile = () => {
   const handleSaveProfile = async () => {
     try {
       setLoading(true);
-      const result = await updateProfile(formData);
+      
+      // Estruturar dados corretamente para o backend
+      const profileData = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        address: {
+          street: formData.address,
+          city: formData.city,
+          state: formData.state,
+          zipCode: formData.zipCode
+        }
+      };
+      
+      console.log('Dados sendo enviados para o backend:', profileData);
+      
+      const result = await updateProfile(profileData);
       if (result.success) {
         setEditing(false);
         toast.success('Perfil atualizado com sucesso!');

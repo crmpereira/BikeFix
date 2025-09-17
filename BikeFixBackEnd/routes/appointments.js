@@ -14,8 +14,11 @@ const {
   rejectAdditionalBudget
 } = require('../controllers/appointmentController');
 
+// Todas as rotas requerem autenticação
+router.use(authenticateToken);
+
 // Endpoint de teste para verificar autenticação
-router.get('/test-auth', authenticateToken, (req, res) => {
+router.get('/test-auth', (req, res) => {
   console.log('Test auth - Usuário autenticado:', {
     id: req.user._id,
     email: req.user.email,
@@ -31,9 +34,6 @@ router.get('/test-auth', authenticateToken, (req, res) => {
     }
   });
 });
-
-// Todas as rotas requerem autenticação
-router.use(authenticateToken);
 
 // @route   POST /api/appointments
 // @desc    Criar novo agendamento

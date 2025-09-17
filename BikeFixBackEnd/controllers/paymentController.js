@@ -285,7 +285,7 @@ const getPaymentStats = async (req, res) => {
     const { startDate, endDate, workshopId } = req.query;
     
     // Verificar permissões
-    if (req.user.role !== 'admin' && req.user.role !== 'workshop') {
+    if (req.user.userType !== 'admin' && req.user.userType !== 'workshop') {
       return res.status(403).json({
         success: false,
         message: 'Acesso negado'
@@ -300,7 +300,7 @@ const getPaymentStats = async (req, res) => {
     }
     
     // Se for oficina, filtrar apenas seus pagamentos
-    if (req.user.role === 'workshop') {
+    if (req.user.userType === 'workshop') {
       const appointments = await Appointment.find({ workshop: req.user.id }).select('_id');
       const appointmentIds = appointments.map(app => app._id);
       

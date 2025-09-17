@@ -1,4 +1,4 @@
-const User = require('../models/User');
+const { User } = require('../models');
 
 // Buscar todas as oficinas aprovadas com filtros
 const getWorkshops = async (req, res) => {
@@ -17,30 +17,28 @@ const getWorkshops = async (req, res) => {
       radius = 10
     } = req.query;
     
-    // Construir filtro base
+    // Construir filtro base - buscar na coleção User
     let filter = {
       userType: 'workshop',
-      'workshopData.isApproved': true,
-      isVerified: true,
-      // Filtrar apenas oficinas que tenham pelo menos um serviço cadastrado
-      'workshopData.services': { $exists: true, $not: { $size: 0 } }
+      isActive: true,
+      isVerified: true
     };
     
     // Aplicar filtros de busca
     if (search) {
       filter.$or = [
-        { 'workshopData.businessName': { $regex: search, $options: 'i' } },
-        { 'workshopData.description': { $regex: search, $options: 'i' } },
+        { 'name': { $regex: search, $options: 'i' } },
+        { 'description': { $regex: search, $options: 'i' } },
         { 'workshopData.services.name': { $regex: search, $options: 'i' } }
       ];
     }
     
     if (city) {
-      filter['workshopData.address.city'] = { $regex: city, $options: 'i' };
+      filter['address.city'] = { $regex: city, $options: 'i' };
     }
     
     if (state) {
-      filter['workshopData.address.state'] = { $regex: state, $options: 'i' };
+      filter['address.state'] = { $regex: state, $options: 'i' };
     }
     
     if (minRating) {
@@ -53,15 +51,27 @@ const getWorkshops = async (req, res) => {
       filter['workshopData.services.name'] = { $in: serviceArray };
     }
     
-    // Buscar oficinas
+    // Buscar oficinas na coleção User
+    console.log('🔍 Filtro aplicado:', JSON.stringify(filter, null, 2));
     let workshops = await User.find(filter)
-      .select('name email phone workshopData')
       .sort({ 'workshopData.rating.average': -1 });
+    console.log('📊 Oficinas encontradas no banco:', workshops.length);
+    
+    if (workshops.length > 0) {
+      console.log('🏪 Primeira oficina:', {
+        id: workshops[0]._id,
+        name: workshops[0].name,
+        userType: workshops[0].userType,
+        isActive: workshops[0].isActive,
+        isVerified: workshops[0].isVerified,
+        address: workshops[0].address
+      });
+    }
 
     // Filtro por faixa de preço (aplicado após busca)
     if (minPrice || maxPrice) {
       workshops = workshops.filter(workshop => {
-        const services = workshop.workshopData.services || [];
+        const services = workshop.workshopData?.services || [];
         if (services.length === 0) return true; // Se não tem serviços, incluir na busca
         
         const prices = services.map(service => service.basePrice || 0).filter(price => price > 0);
@@ -89,15 +99,15 @@ const getWorkshops = async (req, res) => {
       const maxRadius = parseFloat(radius);
       
       workshops = workshops.filter(workshop => {
-        const coordinates = workshop.workshopData.address.coordinates;
-        if (!coordinates || !coordinates.lat || !coordinates.lng) return false;
+        const coordinates = workshop.address?.coordinates;
+        if (!coordinates || !coordinates.latitude || !coordinates.longitude) return false;
         
-        const distance = calculateDistance(userLat, userLng, coordinates.lat, coordinates.lng);
+        const distance = calculateDistance(userLat, userLng, coordinates.latitude, coordinates.longitude);
         
         return distance <= maxRadius;
       }).map(workshop => {
-        const coordinates = workshop.workshopData.address.coordinates;
-        const distance = calculateDistance(userLat, userLng, coordinates.lat, coordinates.lng);
+        const coordinates = workshop.address?.coordinates;
+        const distance = calculateDistance(userLat, userLng, coordinates.latitude, coordinates.longitude);
         
         return {
           ...workshop.toObject(),
@@ -106,36 +116,37 @@ const getWorkshops = async (req, res) => {
       }).sort((a, b) => a.distance - b.distance);
     }
     
+
+    
     // Formatar dados para o frontend
     const formattedWorkshops = workshops.map(workshop => ({
       id: workshop._id,
-      name: workshop.workshopData.businessName,
-      owner: workshop.name,
+      name: workshop.name,
+      owner: workshop.owner || workshop.name,
       email: workshop.email,
       phone: workshop.phone,
-      description: workshop.workshopData.description,
+      description: workshop.description,
       address: {
-        street: workshop.workshopData.address.street,
-        city: workshop.workshopData.address.city,
-        state: workshop.workshopData.address.state,
-        zipCode: workshop.workshopData.address.zipCode,
-        coordinates: workshop.workshopData.address.coordinates
+        street: workshop.address?.street,
+        city: workshop.address?.city,
+        state: workshop.address?.state,
+        zipCode: workshop.address?.zipCode,
+        coordinates: workshop.address?.coordinates
       },
-      workingHours: workshop.workshopData.workingHours,
-      services: (workshop.workshopData.services || []).map((service, index) => {
+      workingHours: workshop.workshopData?.workingHours,
+      services: (workshop.workshopData?.services || []).map((service, index) => {
         const serviceObj = service.toObject ? service.toObject() : service;
         return {
-          id: `${workshop._id}_service_${index}`,
+          id: serviceObj._id || `service_${index}`,
           name: serviceObj.name,
           description: serviceObj.description,
           basePrice: serviceObj.basePrice,
           estimatedTime: serviceObj.estimatedTime
         };
       }),
-      rating: workshop.workshopData.rating,
+      rating: workshop.workshopData?.rating,
       verified: workshop.isVerified,
-      cnpj: workshop.workshopData.cnpj,
-      serviceDetails: workshop.workshopData.serviceDetails || [],
+      cnpj: workshop.cnpj,
       distance: workshop.distance || null
     }));
     
@@ -188,8 +199,10 @@ const getWorkshopById = async (req, res) => {
     const workshop = await User.findOne({
       _id: id,
       userType: 'workshop',
+      isActive: true,
+      isVerified: true,
       'workshopData.isApproved': true
-    }).select('name email phone workshopData');
+    });
     
     if (!workshop) {
       return res.status(404).json({
@@ -201,20 +214,20 @@ const getWorkshopById = async (req, res) => {
     // Formatar dados para o frontend
     const formattedWorkshop = {
       id: workshop._id,
-      name: workshop.workshopData.businessName,
-      owner: workshop.name,
+      name: workshop.name,
+      owner: workshop.workshopData?.businessName || workshop.name,
       email: workshop.email,
       phone: workshop.phone,
-      description: workshop.workshopData.description,
+      description: workshop.workshopData?.description,
       address: {
-        street: workshop.workshopData.address.street,
-        city: workshop.workshopData.address.city,
-        state: workshop.workshopData.address.state,
-        zipCode: workshop.workshopData.address.zipCode,
-        coordinates: workshop.workshopData.address.coordinates
+        street: workshop.workshopData?.address?.street,
+        city: workshop.workshopData?.address?.city,
+        state: workshop.workshopData?.address?.state,
+        zipCode: workshop.workshopData?.address?.zipCode,
+        coordinates: workshop.address?.coordinates
       },
-      workingHours: workshop.workshopData.workingHours,
-      services: (workshop.workshopData.services || []).map((service, index) => {
+      workingHours: workshop.workshopData?.workingHours,
+      services: (workshop.workshopData?.services || []).map((service, index) => {
         const serviceObj = service.toObject ? service.toObject() : service;
         return {
           id: `${workshop._id}_service_${index}`,
@@ -224,9 +237,9 @@ const getWorkshopById = async (req, res) => {
           estimatedTime: serviceObj.estimatedTime
         };
       }),
-      rating: workshop.workshopData.rating,
+      rating: workshop.workshopData?.rating,
       verified: workshop.isVerified,
-      cnpj: workshop.workshopData.cnpj
+      cnpj: workshop.workshopData?.cnpj
     };
     
     res.json({
@@ -265,18 +278,16 @@ const getNearbyWorkshops = async (req, res) => {
     // Buscar oficinas aprovadas
     const workshops = await User.find({
       userType: 'workshop',
-      'workshopData.isApproved': true,
+      isActive: true,
       isVerified: true,
-      'workshopData.address.coordinates.lat': { $exists: true },
-      'workshopData.address.coordinates.lng': { $exists: true },
-      // Filtrar apenas oficinas que tenham pelo menos um serviço cadastrado
-      'workshopData.services': { $exists: true, $not: { $size: 0 } }
-    }).select('name email phone workshopData');
+      'workshopData.isApproved': true,
+      'address.coordinates': { $exists: true, $ne: null }
+    });
     
     // Calcular distância e filtrar por raio
     const nearbyWorkshops = workshops.filter(workshop => {
-      const workshopLat = workshop.workshopData.address.coordinates.lat;
-      const workshopLng = workshop.workshopData.address.coordinates.lng;
+      const workshopLat = workshop.address.coordinates.latitude;
+      const workshopLng = workshop.address.coordinates.longitude;
       
       // Fórmula de Haversine para calcular distância
       const R = 6371; // Raio da Terra em km
@@ -291,8 +302,8 @@ const getNearbyWorkshops = async (req, res) => {
       return distance <= radiusInKm;
     }).map(workshop => {
       // Calcular distância exata para cada oficina
-      const workshopLat = workshop.workshopData.address.coordinates.lat;
-      const workshopLng = workshop.workshopData.address.coordinates.lng;
+      const workshopLat = workshop.address.coordinates.latitude;
+      const workshopLng = workshop.address.coordinates.longitude;
       
       const R = 6371;
       const dLat = (workshopLat - latitude) * Math.PI / 180;
@@ -305,21 +316,21 @@ const getNearbyWorkshops = async (req, res) => {
       
       return {
         id: workshop._id,
-        name: workshop.workshopData.businessName,
-        owner: workshop.name,
+        name: workshop.name,
+        owner: workshop.workshopData?.businessName || workshop.name,
         email: workshop.email,
         phone: workshop.phone,
-        description: workshop.workshopData.description,
+        description: workshop.workshopData?.description,
         address: {
-          street: workshop.workshopData.address.street,
-          city: workshop.workshopData.address.city,
-          state: workshop.workshopData.address.state,
-          zipCode: workshop.workshopData.address.zipCode,
-          coordinates: workshop.workshopData.address.coordinates
+          street: workshop.address?.street,
+          city: workshop.address?.city,
+          state: workshop.address?.state,
+          zipCode: workshop.address?.zipCode,
+          coordinates: workshop.address?.coordinates
         },
-        workingHours: workshop.workshopData.workingHours,
-        services: workshop.workshopData.services,
-        rating: workshop.workshopData.rating,
+        workingHours: workshop.workshopData?.workingHours,
+        services: workshop.workshopData?.services,
+        rating: workshop.workshopData?.rating,
         verified: workshop.isVerified,
         distance: Math.round(distance * 10) / 10 // Arredondar para 1 casa decimal
       };
@@ -351,8 +362,10 @@ const getWorkshopServices = async (req, res) => {
     const workshop = await User.findOne({
       _id: id,
       userType: 'workshop',
+      isActive: true,
+      isVerified: true,
       'workshopData.isApproved': true
-    }).select('workshopData.services workshopData.businessName');
+    }).select('name workshopData.services');
     
     if (!workshop) {
       return res.status(404).json({
@@ -365,8 +378,8 @@ const getWorkshopServices = async (req, res) => {
       success: true,
       message: 'Serviços encontrados com sucesso',
       data: {
-        workshopName: workshop.workshopData.businessName,
-        services: workshop.workshopData.services
+        workshopName: workshop.name,
+        services: workshop.workshopData?.services || []
       }
     });
     

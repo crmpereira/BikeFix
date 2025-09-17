@@ -20,6 +20,7 @@ const createAppointment = async (req, res) => {
 
     // Verificar se a oficina existe
     const workshop = await User.findOne({ _id: workshopId, userType: 'workshop' });
+    
     if (!workshop) {
       return res.status(404).json({
         success: false,
@@ -335,8 +336,8 @@ const updateAppointmentStatus = async (req, res) => {
     }
 
     // Verificar permissões
-    const isWorkshop = req.user.userType === 'workshop' && appointment.workshop.toString() === req.user.id;
-    const isCyclist = req.user.userType === 'cyclist' && appointment.cyclist.toString() === req.user.id;
+    const isWorkshop = req.user.userType === 'workshop' && appointment.workshop.toString() === req.user._id.toString();
+    const isCyclist = req.user.userType === 'cyclist' && appointment.cyclist.toString() === req.user._id.toString();
 
     if (!isWorkshop && !isCyclist) {
       return res.status(403).json({

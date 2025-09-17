@@ -30,6 +30,18 @@ const userSchema = new mongoose.Schema({
     default: null
   },
   
+  // Endereço com coordenadas aninhadas
+  address: {
+    street: String,
+    city: String,
+    state: String,
+    zipCode: String,
+    coordinates: {
+      latitude: Number,
+      longitude: Number
+    }
+  },
+  
   // Tipo de usuário
   userType: {
     type: String,
@@ -53,16 +65,6 @@ const userSchema = new mongoose.Schema({
   // Dados específicos do ciclista
   cyclistData: {
     dateOfBirth: Date,
-    address: {
-      street: String,
-      city: String,
-      state: String,
-      zipCode: String,
-      coordinates: {
-        lat: Number,
-        lng: Number
-      }
-    },
     bikes: [{
       brand: String,
       model: String,
@@ -96,16 +98,6 @@ const userSchema = new mongoose.Schema({
     businessName: String,
     cnpj: String,
     description: String,
-    address: {
-      street: String,
-      city: String,
-      state: String,
-      zipCode: String,
-      coordinates: {
-        lat: Number,
-        lng: Number
-      }
-    },
     workingHours: {
       monday: { open: String, close: String, isOpen: Boolean },
       tuesday: { open: String, close: String, isOpen: Boolean },

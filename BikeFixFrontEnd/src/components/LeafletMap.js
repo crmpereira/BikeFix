@@ -109,8 +109,8 @@ function MapUpdater({ workshops, userLocation }) {
 
     // Adicionar oficinas aos bounds
     workshops.forEach(workshop => {
-      if (workshop.coordinates && workshop.coordinates.lat && workshop.coordinates.lng) {
-        bounds.extend([workshop.coordinates.lat, workshop.coordinates.lng]);
+      if (workshop.address?.coordinates && workshop.address.coordinates.latitude && workshop.address.coordinates.longitude) {
+          bounds.extend([workshop.address.coordinates.latitude, workshop.address.coordinates.longitude]);
         hasValidBounds = true;
       }
     });
@@ -237,7 +237,7 @@ const LeafletMap = ({
         
         {/* Marcadores das oficinas */}
         {workshops.map((workshop) => {
-          if (!workshop.coordinates || !workshop.coordinates.lat || !workshop.coordinates.lng) {
+          if (!workshop.address?.coordinates || !workshop.address.coordinates.latitude || !workshop.address.coordinates.longitude) {
             return null;
           }
           
@@ -247,7 +247,7 @@ const LeafletMap = ({
           return (
             <Marker
               key={workshop.id}
-              position={[workshop.coordinates.lat, workshop.coordinates.lng]}
+              position={[workshop.address.coordinates.latitude, workshop.address.coordinates.longitude]}
               icon={icon}
               eventHandlers={{
                 click: () => {
@@ -305,7 +305,7 @@ const LeafletMap = ({
                       </Typography>
                       {workshop.distance && (
                         <Chip
-                          label={`${workshop.distance.toFixed(1)} km`}
+                          label={workshop.distance}
                           size="small"
                           variant="outlined"
                           sx={{ 
@@ -402,12 +402,12 @@ const LeafletMap = ({
                       >
                         Ver Detalhes
                       </Button>
-                      {workshop.coordinates && (
+                      {workshop.address?.coordinates && (
                         <Button
                           variant="outlined"
                           size="small"
                           onClick={() => {
-                            const url = `https://www.google.com/maps/dir/?api=1&destination=${workshop.coordinates.lat},${workshop.coordinates.lng}`;
+                            const url = `https://www.google.com/maps/dir/?api=1&destination=${workshop.address.coordinates.latitude},${workshop.address.coordinates.longitude}`;
                             window.open(url, '_blank');
                           }}
                           sx={{ 
