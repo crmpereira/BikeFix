@@ -138,6 +138,56 @@ const validateResendVerification = [
  */
 router.post('/register', validateRegister, authController.register);
 
+// Endpoint temporário de debug - REMOVER EM PRODUÇÃO
+router.post('/debug-user', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const User = require('../models/User');
+    
+    const user = await User.findOne({ email }).select('+password');
+    
+    if (!user) {
+      return res.json({
+        found: false,
+        message: 'Usuário não encontrado',
+        email: email
+      });
+    }
+
+    // Teste de senha
+    const testPassword = '123456';
+    const isPasswordValid = await user.comparePassword(testPassword);
+
+    res.json({
+      found: true,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        userType: user.userType,
+        isActive: user.isActive,
+        isVerified: user.isVerified,
+        hasPassword: !!user.password,
+        passwordLength: user.password ? user.password.length : 0,
+        lastLogin: user.lastLogin,
+        createdAt: user.createdAt
+      },
+      passwordTest: {
+        testPassword: testPassword,
+        isValid: isPasswordValid
+      },
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      error: true,
+      message: error.message,
+      stack: error.stack
+    });
+  }
+});
+
 /**
  * @swagger
  * /api/auth/login:
