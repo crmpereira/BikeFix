@@ -35,6 +35,12 @@ services:
         value: 7d
       - key: FRONTEND_URL
         sync: false  # Será configurado após deploy do frontend
+      - key: GOOGLE_CLIENT_ID
+        sync: false  # Será configurado manualmente no dashboard
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false  # Será configurado manualmente no dashboard
+      - key: GOOGLE_CALLBACK_URL
+        sync: false  # Será configurado manualmente no dashboard
 
   # =============================================================================
   # FRONTEND - REACT APP
@@ -68,6 +74,9 @@ services:
 #   - MONGODB_URI: String de conexão do MongoDB Atlas
 #   - JWT_SECRET: Chave secreta forte para JWT
 #   - FRONTEND_URL: URL do frontend após deploy
+#   - GOOGLE_CLIENT_ID: Client ID do Google OAuth Console
+#   - GOOGLE_CLIENT_SECRET: Client Secret do Google OAuth Console
+#   - GOOGLE_CALLBACK_URL: URL de callback do Google OAuth
 # 
 # Frontend:
 #   - REACT_APP_API_URL: URL do backend após deploy

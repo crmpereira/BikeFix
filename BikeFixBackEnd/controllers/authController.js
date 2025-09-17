@@ -456,6 +456,42 @@ const logout = async (req, res) => {
   }
 };
 
+// Callback do Google OAuth
+const googleCallback = (req, res) => {
+  try {
+    // Usuário autenticado com sucesso pelo Passport
+    const user = req.user;
+    
+    if (!user) {
+      return res.redirect(`${process.env.FRONTEND_URL}/login?error=authentication_failed`);
+    }
+
+    // Gerar token JWT
+    const token = jwt.sign(
+      { 
+        userId: user._id,
+        email: user.email,
+        userType: user.userType
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRE || '7d' }
+    );
+
+    // Codificar dados do usuário para passar via URL
+    const userData = Buffer.from(JSON.stringify({
+      user: user.getPublicProfile(),
+      token
+    })).toString('base64');
+
+    // Redirecionar para o frontend com os dados
+    res.redirect(`${process.env.FRONTEND_URL}/auth/callback?data=${userData}`);
+
+  } catch (error) {
+    console.error('Erro no callback do Google:', error);
+    res.redirect(`${process.env.FRONTEND_URL}/login?error=server_error`);
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -465,5 +501,6 @@ module.exports = {
   resetPassword,
   changePassword,
   getProfile,
-  logout
+  logout,
+  googleCallback
 };

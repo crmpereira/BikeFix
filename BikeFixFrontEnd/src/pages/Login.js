@@ -7,7 +7,6 @@ import {
   Button,
   Typography,
   Link,
-  Alert,
   CircularProgress,
   Divider,
   IconButton,
@@ -125,8 +124,9 @@ const Login = () => {
   };
 
   const handleGoogleLogin = () => {
-    // TODO: Implementar login com Google
-    toast.info('Login com Google será implementado em breve');
+    // Redirecionar para a rota de autenticação Google no backend
+    const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
+    window.location.href = `${backendUrl}/auth/google`;
   };
 
   return (

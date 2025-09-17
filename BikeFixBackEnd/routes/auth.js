@@ -440,4 +440,22 @@ router.post('/geocode', async (req, res) => {
   }
 });
 
+// ==========================================
+// ROTAS GOOGLE OAUTH
+// ==========================================
+
+// Rota para iniciar autenticação com Google
+router.get('/google', (req, res, next) => {
+  const passport = require('../config/passport');
+  passport.authenticate('google', {
+    scope: ['profile', 'email']
+  })(req, res, next);
+});
+
+// Rota de callback do Google
+router.get('/google/callback', (req, res, next) => {
+  const passport = require('../config/passport');
+  passport.authenticate('google', { session: false })(req, res, next);
+}, authController.googleCallback);
+
 module.exports = router;

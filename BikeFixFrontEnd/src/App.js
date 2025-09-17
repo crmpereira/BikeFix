@@ -30,6 +30,7 @@ import FinancialReports from './pages/FinancialReports';
 import AdminFinancialReports from './pages/AdminFinancialReports';
 import AppointmentDetail from './pages/AppointmentDetail';
 import ForgotPassword from './pages/ForgotPassword';
+import AuthCallback from './pages/AuthCallback';
 import NotFound from './pages/NotFound';
 
 // Styles
@@ -103,6 +104,7 @@ function App() {
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/auth/callback" element={<AuthCallback />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/workshops" element={<WorkshopSearch />} />
                   <Route path="/workshops/:id" element={<WorkshopDetail />} />

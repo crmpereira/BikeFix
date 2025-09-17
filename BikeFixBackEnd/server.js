@@ -12,8 +12,14 @@ const { connectDB } = process.env.NODE_ENV === 'test'
 const { initializeDefaultData } = require('./models');
 const { swaggerUi, specs } = require('./config/swagger');
 
+// Configuração do Passport (Google OAuth)
+const passport = require('./config/passport');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Inicializar Passport
+app.use(passport.initialize());
 
 // Configurações de segurança
 app.use(helmet());
