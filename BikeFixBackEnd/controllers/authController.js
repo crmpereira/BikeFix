@@ -114,19 +114,41 @@ const register = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    
+    console.log('=== TENTATIVA DE LOGIN ===');
+    console.log('Email recebido:', email);
+    console.log('Password recebido:', password ? '[PRESENTE]' : '[AUSENTE]');
+    console.log('Timestamp:', new Date().toISOString());
 
     // Buscar usuário
+    console.log('Buscando usuário no banco...');
     const user = await User.findOne({ email }).select('+password');
+    console.log('Usuário encontrado:', !!user);
+    
     if (!user) {
+      console.log('❌ Usuário não encontrado para email:', email);
       return res.status(401).json({
         success: false,
         message: 'Email ou senha incorretos'
       });
     }
 
+    console.log('Dados do usuário encontrado:');
+    console.log('- ID:', user._id);
+    console.log('- Email:', user.email);
+    console.log('- Nome:', user.name);
+    console.log('- Tipo:', user.userType);
+    console.log('- Ativo:', user.isActive);
+    console.log('- Verificado:', user.isVerified);
+    console.log('- Tem senha:', !!user.password);
+
     // Verificar senha
+    console.log('Verificando senha...');
     const isPasswordValid = await user.comparePassword(password);
+    console.log('Senha válida:', isPasswordValid);
+    
     if (!isPasswordValid) {
+      console.log('❌ Senha incorreta para usuário:', user.email);
       return res.status(401).json({
         success: false,
         message: 'Email ou senha incorretos'
@@ -135,11 +157,14 @@ const login = async (req, res) => {
 
     // Verificar se conta está ativa
     if (!user.isActive) {
+      console.log('❌ Conta desativada para usuário:', user.email);
       return res.status(401).json({
         success: false,
         message: 'Conta desativada. Entre em contato com o suporte.'
       });
     }
+
+    console.log('✅ Login válido! Gerando token...');
 
     // Atualizar último login
     user.lastLogin = new Date();
@@ -147,6 +172,9 @@ const login = async (req, res) => {
 
     // Gerar token
     const token = generateToken(user._id);
+    console.log('Token gerado:', token ? '[GERADO]' : '[ERRO]');
+
+    console.log('=== LOGIN CONCLUÍDO COM SUCESSO ===');
 
     res.json({
       success: true,
@@ -158,7 +186,8 @@ const login = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Erro no login:', error);
+    console.error('❌ ERRO NO LOGIN:', error);
+    console.error('Stack trace:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Erro interno do servidor'
