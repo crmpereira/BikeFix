@@ -119,6 +119,20 @@ const WorkshopDashboard = () => {
         return aptDate.getMonth() === currentMonth && aptDate.getFullYear() === currentYear;
       });
 
+      // Filtrar agendamentos da semana atual
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      startOfWeek.setHours(0, 0, 0, 0);
+      
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      endOfWeek.setHours(23, 59, 59, 999);
+
+      const currentWeekAppointments = appointmentsData.filter(apt => {
+        const aptDate = new Date(apt.appointmentDate || apt.date);
+        return aptDate >= startOfWeek && aptDate <= endOfWeek;
+      });
+
       // Contar por status
       const statusCounts = currentMonthAppointments.reduce((acc, apt) => {
         const status = apt.status || 'pending';
@@ -131,31 +145,53 @@ const WorkshopDashboard = () => {
         apt.status === 'completed'
       );
 
-      let monthlyRevenue = 0;
-      
-      for (const apt of completedAppointments) {
-        try {
-          // Buscar configuração de comissão
-          const commissionResponse = await fetch('/api/commission/config', {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-          });
-          
-          let commissionRate = 0.10; // 10% padrão
-          if (commissionResponse.ok) {
-            const commissionData = await commissionResponse.json();
-            commissionRate = commissionData.rate || 0.10;
-          }
+      // Calcular receita da semana (apenas agendamentos concluídos)
+      const weekCompletedAppointments = currentWeekAppointments.filter(apt => 
+        apt.status === 'completed'
+      );
 
-          const appointmentValue = apt.totalPrice || apt.price || 0;
-          const workshopRevenue = appointmentValue * (1 - commissionRate);
-          monthlyRevenue += workshopRevenue;
-        } catch (error) {
-          console.error('Erro ao calcular comissão:', error);
-          const appointmentValue = apt.totalPrice || apt.price || 0;
-          monthlyRevenue += appointmentValue * 0.90;
+      let monthlyGrossRevenue = 0;
+      let monthlyNetRevenue = 0;
+      let weekGrossRevenue = 0;
+      let weekNetRevenue = 0;
+      let platformFeeTotal = 0;
+      
+      // Buscar configuração de comissão uma vez
+      let commissionRate = 0.10; // 10% padrão
+      try {
+        const commissionResponse = await fetch('/api/commission/config', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        
+        if (commissionResponse.ok) {
+          const commissionData = await commissionResponse.json();
+          commissionRate = commissionData.rate || 0.10;
         }
+      } catch (error) {
+        console.error('Erro ao buscar configuração de comissão:', error);
+      }
+
+      // Calcular receita mensal
+      for (const apt of completedAppointments) {
+        const appointmentValue = apt.totalPrice || apt.price || 0;
+        const platformFee = appointmentValue * commissionRate;
+        const workshopRevenue = appointmentValue - platformFee;
+        
+        monthlyGrossRevenue += appointmentValue;
+        monthlyNetRevenue += workshopRevenue;
+        platformFeeTotal += platformFee;
+      }
+
+      // Calcular receita semanal
+      for (const apt of weekCompletedAppointments) {
+        const appointmentValue = apt.totalPrice || apt.price || 0;
+        const platformFee = appointmentValue * commissionRate;
+        const workshopRevenue = appointmentValue - platformFee;
+        
+        weekGrossRevenue += appointmentValue;
+        weekNetRevenue += workshopRevenue;
       }
 
       // Calcular crescimento (comparar com mês anterior)
@@ -172,24 +208,54 @@ const WorkshopDashboard = () => {
       
       for (const apt of lastMonthCompleted) {
         const appointmentValue = apt.totalPrice || apt.price || 0;
-        lastMonthRevenue += appointmentValue * 0.90;
+        lastMonthRevenue += appointmentValue * (1 - commissionRate);
       }
 
       const growth = lastMonthRevenue > 0 
-        ? ((monthlyRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 
+        ? ((monthlyNetRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 
+        : 0;
+
+      // Calcular avaliações
+      const reviewedAppointments = appointmentsData.filter(apt => apt.rating && apt.rating > 0);
+      const averageRating = reviewedAppointments.length > 0 
+        ? reviewedAppointments.reduce((sum, apt) => sum + apt.rating, 0) / reviewedAppointments.length 
         : 0;
 
       setStats({
+        monthlyAppointments: currentMonthAppointments.length,
+        weekRevenue: weekNetRevenue,
+        weekGrossRevenue: weekGrossRevenue || 0,
+        weekNetRevenue: weekNetRevenue || 0,
+        monthlyGrossRevenue: monthlyGrossRevenue || 0,
+        monthlyNetRevenue: monthlyNetRevenue || 0,
+        platformFeeTotal: platformFeeTotal || 0,
+        monthlyGrowth: growth || 0,
+        pendingQuotes: statusCounts.pending || 0,
+        averageRating: averageRating || 0,
+        totalReviews: reviewedAppointments.length || 0,
+        // Manter compatibilidade com código antigo
         totalAppointments: currentMonthAppointments.length,
         pendingAppointments: statusCounts.pending || 0,
         completedAppointments: statusCounts.completed || 0,
-        monthlyRevenue: monthlyRevenue,
+        monthlyRevenue: monthlyNetRevenue,
         growth: growth
       });
 
     } catch (error) {
       console.error('Erro ao calcular estatísticas:', error);
       setStats({
+        monthlyAppointments: 0,
+        weekRevenue: 0,
+        weekGrossRevenue: 0,
+        weekNetRevenue: 0,
+        monthlyGrossRevenue: 0,
+        monthlyNetRevenue: 0,
+        platformFeeTotal: 0,
+        monthlyGrowth: 0,
+        pendingQuotes: 0,
+        averageRating: 0,
+        totalReviews: 0,
+        // Manter compatibilidade com código antigo
         totalAppointments: 0,
         pendingAppointments: 0,
         completedAppointments: 0,
