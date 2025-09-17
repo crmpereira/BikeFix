@@ -1,16 +1,25 @@
 # Configuração do Google OAuth no Render
 
+## ⚠️ ERRO COMUM DE DEPLOY
+
+Se você receber o erro:
+```
+TypeError: OAuth2Strategy requires a clientID option
+```
+
+Isso significa que as **variáveis de ambiente do Google OAuth não estão configuradas** no Render.
+
 ## Variáveis de Ambiente Obrigatórias
 
 ### Backend (bikefix-backend)
 
-Configure as seguintes variáveis no painel do Render:
+Configure as seguintes variáveis no painel do Render **ANTES** do deploy:
 
-1. **GOOGLE_CLIENT_ID**
+1. **GOOGLE_CLIENT_ID** ⚠️ **OBRIGATÓRIO**
    - Valor: Seu Client ID do Google OAuth Console
    - Obtenha em: https://console.cloud.google.com/apis/credentials
 
-2. **GOOGLE_CLIENT_SECRET**
+2. **GOOGLE_CLIENT_SECRET** ⚠️ **OBRIGATÓRIO**
    - Valor: Seu Client Secret do Google OAuth Console
    - Obtenha em: https://console.cloud.google.com/apis/credentials
 

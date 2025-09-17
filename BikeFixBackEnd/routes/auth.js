@@ -444,8 +444,21 @@ router.post('/geocode', async (req, res) => {
 // ROTAS GOOGLE OAUTH
 // ==========================================
 
+// Verificar se Google OAuth está configurado
+const isGoogleOAuthConfigured = () => {
+  return process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET;
+};
+
 // Rota para iniciar autenticação com Google
 router.get('/google', (req, res, next) => {
+  if (!isGoogleOAuthConfigured()) {
+    return res.status(503).json({
+      success: false,
+      message: 'Google OAuth não está configurado no servidor',
+      error: 'GOOGLE_OAUTH_NOT_CONFIGURED'
+    });
+  }
+  
   const passport = require('../config/passport');
   passport.authenticate('google', {
     scope: ['profile', 'email']
@@ -454,6 +467,10 @@ router.get('/google', (req, res, next) => {
 
 // Rota de callback do Google
 router.get('/google/callback', (req, res, next) => {
+  if (!isGoogleOAuthConfigured()) {
+    return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_not_configured`);
+  }
+  
   const passport = require('../config/passport');
   passport.authenticate('google', { session: false })(req, res, next);
 }, authController.googleCallback);

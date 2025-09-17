@@ -2,14 +2,23 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const User = require('../models/User');
 
-// Configuração da estratégia Google OAuth
-passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: process.env.GOOGLE_CALLBACK_URL || (process.env.NODE_ENV === 'production' 
-    ? 'https://bikefix-backend.onrender.com/api/auth/google/callback'
-    : 'http://localhost:3001/api/auth/google/callback')
-}, async (accessToken, refreshToken, profile, done) => {
+// Verificar se as variáveis de ambiente do Google OAuth estão configuradas
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+const googleCallbackUrl = process.env.GOOGLE_CALLBACK_URL || (process.env.NODE_ENV === 'production' 
+  ? 'https://bikefix-backend.onrender.com/api/auth/google/callback'
+  : 'http://localhost:3001/api/auth/google/callback');
+
+// Só configurar Google OAuth se as variáveis estiverem definidas
+if (googleClientId && googleClientSecret) {
+  console.log('Configurando Google OAuth Strategy...');
+  
+  // Configuração da estratégia Google OAuth
+  passport.use(new GoogleStrategy({
+    clientID: googleClientId,
+    clientSecret: googleClientSecret,
+    callbackURL: googleCallbackUrl
+  }, async (accessToken, refreshToken, profile, done) => {
   try {
     console.log('Google OAuth Profile:', profile);
     
@@ -59,6 +68,11 @@ passport.use(new GoogleStrategy({
     return done(error, null);
   }
 }));
+
+} else {
+  console.warn('⚠️  Google OAuth não configurado: GOOGLE_CLIENT_ID e/ou GOOGLE_CLIENT_SECRET não definidos');
+  console.warn('   Para habilitar login com Google, configure essas variáveis de ambiente');
+}
 
 // Serialização do usuário para sessão
 passport.serializeUser((user, done) => {
