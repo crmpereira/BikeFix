@@ -1,5 +1,68 @@
 # 🚴‍♂️ BikeFix - Plataforma de Manutenção de Bicicletas
 
+## 🚴‍♂️ Fluxo da Aplicação
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│    CICLISTA     │    │    PLATAFORMA   │    │    OFICINA      │
+│                 │    │    BIKEFIX      │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         │ 1. Cadastro/Login     │                       │
+         ├──────────────────────►│                       │
+         │                       │                       │
+         │ 2. Busca Oficinas     │                       │
+         ├──────────────────────►│                       │
+         │                       │                       │
+         │ 3. Lista Oficinas     │                       │
+         │◄──────────────────────┤                       │
+         │                       │                       │
+         │ 4. Agenda Serviço     │                       │
+         ├──────────────────────►│                       │
+         │                       │ 5. Notifica Oficina  │
+         │                       ├──────────────────────►│
+         │                       │                       │
+         │                       │ 6. Confirma Agenda   │
+         │                       │◄──────────────────────┤
+         │                       │                       │
+         │ 7. Confirmação        │                       │
+         │◄──────────────────────┤                       │
+         │                       │                       │
+         │ 8. Realiza Serviço    │ 9. Atualiza Status   │
+         │                       │◄──────────────────────┤
+         │                       │                       │
+         │ 10. Notifica Conclusão│                       │
+         │◄──────────────────────┤                       │
+         │                       │                       │
+         │ 11. Avalia Serviço    │                       │
+         ├──────────────────────►│                       │
+         │                       │ 12. Registra Review  │
+         │                       ├──────────────────────►│
+```
+
+### 📋 Detalhamento do Fluxo
+
+**👤 CICLISTA:**
+1. **Cadastro/Login** - Cria conta ou acessa plataforma
+2. **Busca Oficinas** - Filtra por localização, serviços, avaliação
+3. **Agenda Serviço** - Seleciona oficina, serviço e horário
+4. **Acompanha Status** - Recebe notificações sobre o progresso
+5. **Avalia Serviço** - Deixa review e nota após conclusão
+
+**🏪 OFICINA:**
+1. **Cadastro/Login** - Registra oficina com serviços oferecidos
+2. **Gerencia Agenda** - Define horários disponíveis
+3. **Recebe Solicitações** - Notificada sobre novos agendamentos
+4. **Confirma/Rejeita** - Aceita ou recusa baseado na disponibilidade
+5. **Atualiza Status** - Informa progresso do serviço
+6. **Recebe Avaliações** - Visualiza feedback dos clientes
+
+**🔧 TIPOS DE SERVIÇO:**
+- 🔧 Manutenção Básica
+- ⚙️ Troca de Peças
+- 🛠️ Revisão Completa
+- 🚴‍♂️ Ajustes Personalizados
+
 ## 📋 Sobre o Projeto
 
 BikeFix é uma plataforma MVP que conecta ciclistas com oficinas especializadas em manutenção de bicicletas. O sistema permite agendamentos online, gerenciamento de serviços e avaliações.
@@ -21,6 +84,11 @@ BikeFix/
 │   ├── routes/             # Rotas da API
 │   ├── middleware/         # Middlewares
 │   ├── config/             # Configurações
+│   ├── scripts/            # Scripts de migração e setup
+│   │   ├── migrate-local-to-atlas.js    # Migração MongoDB Local → Atlas
+│   │   ├── setup-mongodb-atlas-production.js  # Setup produção Atlas
+│   │   ├── migrate-production.js        # Migração dados produção
+│   │   └── seedWorkshops.js            # Seed dados de teste
 │   ├── server.js           # Servidor de desenvolvimento
 │   ├── server-production.js # Servidor de produção
 │   └── package.json
@@ -39,9 +107,10 @@ BikeFix/
 
 ### Pré-requisitos
 
-1. **MongoDB Atlas**: Cluster configurado ([Guia](./MONGODB_ATLAS_SETUP.md))
+1. **MongoDB Atlas**: Cluster configurado ([Guia](./MONGODB-ATLAS-SETUP.md))
 2. **Render Account**: Conta gratuita no [Render](https://render.com)
 3. **GitHub**: Repositório público ou privado
+4. **Migração de Dados**: Se necessário, execute a migração antes do deploy
 
 ### 1️⃣ Deploy do Backend
 
@@ -83,6 +152,39 @@ BikeFix/
    ```env
    REACT_APP_API_URL=https://bikefix-backend.onrender.com/api
    ```
+
+## 🔄 Migração de Dados
+
+### MongoDB Local para Atlas
+
+Se você já possui dados em um MongoDB local e deseja migrar para o MongoDB Atlas, utilize o script de migração:
+
+```bash
+cd BikeFixBackEnd
+node scripts/migrate-local-to-atlas.js
+```
+
+**O que o script faz:**
+- ✅ Conecta ao MongoDB local e Atlas simultaneamente
+- ✅ Cria backups de segurança de todas as coleções
+- ✅ Exporta dados do MongoDB local
+- ✅ Importa dados para o MongoDB Atlas
+- ✅ Gera relatório detalhado da migração
+- ✅ Remove arquivos temporários automaticamente
+
+**Pré-requisitos:**
+- MongoDB local rodando com dados
+- MongoDB Atlas configurado e acessível
+- Variáveis de ambiente configuradas (`.env`)
+
+**Configuração necessária no `.env`:**
+```env
+# MongoDB Local
+MONGODB_LOCAL_URI=mongodb://localhost:27017/bikefix
+
+# MongoDB Atlas (produção)
+MONGODB_URI=mongodb+srv://usuario:senha@cluster.mongodb.net/bikefix
+```
 
 ### Backend
 ```bash
@@ -179,6 +281,20 @@ Este comando criará 5 oficinas de teste com dados completos:
 # Verifique os logs no Render Dashboard
 # Confirme se todas as variáveis de ambiente estão configuradas
 # Verifique se os comandos de build estão corretos
+```
+
+**4. Problemas na Migração de Dados**
+```bash
+# Erro de conexão com MongoDB local
+# Verifique se o MongoDB local está rodando: mongod --version
+
+# Erro de conexão com Atlas
+# Confirme se a URI do Atlas está correta no .env
+# Verifique se o IP está na whitelist do MongoDB Atlas
+
+# Falha na migração de coleções específicas
+# Execute o script novamente - ele detecta dados já migrados
+# Verifique os logs detalhados no console durante a execução
 ```
 
 ## 🚀 Tecnologias
